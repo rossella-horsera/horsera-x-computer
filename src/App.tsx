@@ -3,14 +3,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import AppLayout from "./components/AppLayout";
+import AppShell from "./components/layout/AppShell";
 import HomePage from "./pages/HomePage";
-import RidePage from "./pages/RidePage";
-import LearnPage from "./pages/LearnPage";
-import ProgressPage from "./pages/ProgressPage";
-import GeniePage from "./pages/GeniePage";
-import EvidenceStudioPage from "./pages/EvidenceStudioPage";
-import PositionStabilityPage from "./pages/PositionStabilityPage";
+import JourneyPage from "./pages/JourneyPage";
+import RidesPage from "./pages/RidesPage";
+import RideDetailPage from "./pages/RideDetailPage";
+import InsightsPage from "./pages/InsightsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,18 +19,16 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route element={<AppLayout />}>
+        <AppShell>
+          <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/ride" element={<RidePage />} />
-            <Route path="/ride/:rideId/evidence" element={<EvidenceStudioPage />} />
-            <Route path="/learn" element={<LearnPage />} />
-            <Route path="/progress" element={<ProgressPage />} />
-            <Route path="/progress/position-stability" element={<PositionStabilityPage />} />
-            <Route path="/genie" element={<GeniePage />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="/journey" element={<JourneyPage />} />
+            <Route path="/rides" element={<RidesPage />} />
+            <Route path="/rides/:id" element={<RideDetailPage />} />
+            <Route path="/insights" element={<InsightsPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AppShell>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

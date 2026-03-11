@@ -123,7 +123,7 @@ function MetricSummaryRow({ metricKey, label, color, data }: {
   color: string;
   data: typeof biometricsTrend;
 }) {
-  const values = data.map(d => (d as Record<string, number>)[metricKey]);
+  const values = data.map(d => (d as unknown as Record<string, number>)[metricKey]);
   const latest = values[values.length - 1];
   const first = values[0];
   const delta = latest - first;
