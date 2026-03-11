@@ -89,7 +89,7 @@ function TrendChart({
       {METRIC_CONFIG.map(({ key, color }) => {
         if (!activeMetrics.has(key)) return null;
         const pts = data.map((d, i) =>
-          `${xPos(i)},${yPos((d as Record<string, number>)[key])}`
+          `${xPos(i)},${yPos((d as unknown as Record<string, number>)[key])}`
         ).join(' ');
         return (
           <g key={key}>
