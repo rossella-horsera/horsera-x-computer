@@ -105,7 +105,7 @@ function TrendChart({
               <circle
                 key={i}
                 cx={xPos(i)}
-                cy={yPos((d as Record<string, number>)[key])}
+                cy={yPos((d as unknown as Record<string, number>)[key])}
                 r="2"
                 fill={color}
               />
