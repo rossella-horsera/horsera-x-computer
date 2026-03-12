@@ -238,3 +238,27 @@ Milestone states: untouched | working | mastered
 Styling uses inline styles throughout (not Tailwind classes) — intentional for MVP. Follow existing pattern when adding UI.
 
 **Fonts:** Playfair Display (serif, headings), DM Sans (sans, body), DM Mono (mono, metrics).
+
+---
+
+## Slack — Agent Notifications
+
+Agents post to #horsera-agents in Slack at two moments:
+
+1. When a card moves to **Ready for Review**
+2. When Ross has **questions for Rossella** on a new card
+
+**Webhook URL:** stored in .env as SLACK_WEBHOOK_URL
+
+Post using curl:
+
+Ready for review message:
+{"text":"🐴 *Ready for review:* CARD_TITLE\nSUMMARY\nTrello: CARD_URL"}
+
+Question for Rossella message:
+{"text":"🤔 *Question from Ross:* CARD_TITLE\nQUESTION\nTrello: CARD_URL"}
+
+Example:
+curl -X POST -H 'Content-type: application/json' --data '{"text":"🐴 *Ready for review:* Add login to app\nLogin screen built with email/password. Ready to test.\nTrello: https://trello.com/c/xxx"}' $SLACK_WEBHOOK_URL
+
+Rossella replies in Slack. Ross copies her reply back to the Trello card as a comment at the start of the next session.
