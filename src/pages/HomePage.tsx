@@ -1,268 +1,367 @@
-import { motion } from "framer-motion";
-import { Play, BookOpen, ChevronRight, Sparkles, ArrowRight, Target, ArrowUpRight } from "lucide-react";
-import { activeThread, getLatestTrainerFeedback, entryTypeConfig, getJourneyChains } from "@/lib/developmentThread";
-import type { EntryType } from "@/lib/developmentThread";
-import { useNavigate } from "react-router-dom";
-import { getTrainerRecommendedItems, getContextualRecommendations, contentTypeConfig, practiceExercises, getExercisesForGoal } from "@/lib/learningContent";
-import type { LearningItem, PracticeExercise, TrainerRecommendation } from "@/lib/learningContent";
-import heroRider from "@/assets/hero-rider.jpg";
+import { useNavigate } from 'react-router-dom';
+import CadenceInsightCard from '../components/ui/CadenceInsightCard';
+import { useCadence } from '../context/CadenceContext';
+import {
+  mockRider,
+  mockGoal,
+  mockRides,
+  mockWeek,
+  biometricsTrend,
+  cadenceInsights,
+} from '../data/mock';
 
-const HomePage = () => {
-  const navigate = useNavigate();
-  const trainerFeedback = getLatestTrainerFeedback(activeThread);
-  const rideCount = activeThread.entries.filter((e) => e.type === "ride").length;
-  const latestTrend = activeThread.skillTrajectories.find((s) => s.trend === "improving");
-  const journeyChains = getJourneyChains(activeThread);
-  const latestChain = journeyChains.length > 0 ? journeyChains[journeyChains.length - 1] : null;
+// ─── Atmospheric hero placeholder ─────────────────────────────────────────────
+// Replace the gradient hero with a real photo by swapping this component.
+// Photo spec: equestrian rider in motion, warm light, 430×280px, editorial feel.
+
+function HeroPlaceholder() {
+  const activeMilestone = mockGoal.milestones.find(m => m.state === 'working');
 
   return (
-    <div className="pb-6">
-      {/* Hero — Full-width editorial image with overlay */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6 }}
-        className="relative h-[320px] overflow-hidden"
-      >
-        <img
-          src={heroRider}
-          alt="Rider in motion"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 px-6 pb-6">
-          <motion.p
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground mb-1"
-          >
-            Your Focus
-          </motion.p>
-          <motion.h1
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-3xl font-display font-semibold text-foreground leading-tight text-balance"
-          >
-            {activeThread.goal}
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="text-sm text-muted-foreground mt-2"
-          >
-            {rideCount} rides · {latestTrend ? `${latestTrend.name} improving` : "Building foundation"} · Since {activeThread.startDate}
-          </motion.p>
-        </div>
-      </motion.div>
+    <div style={{ height: '290px', position: 'relative', overflow: 'hidden', background: '#2A1F15' }}>
+      {/* Real hero photo */}
+      <img
+        src="/hero.jpg"
+        alt=""
+        style={{
+          position: 'absolute', inset: 0,
+          width: '100%', height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center 35%',
+        }}
+      />
 
-      <div className="px-6 space-y-8 mt-6">
-        {/* Primary Action — What's Next */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-        >
-          <button
-            onClick={() => navigate("/ride")}
-            className="w-full text-left group"
-          >
-            <div className="glass-card p-5 transition-all duration-200 active:scale-[0.98]">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shrink-0">
-                  {activeThread.nextAction.type === "ride" ? (
-                    <Play size={20} className="text-primary-foreground ml-0.5" />
-                  ) : (
-                    <BookOpen size={20} className="text-primary-foreground" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground mb-1">
-                    Next Step
-                  </p>
-                  <p className="text-lg font-display font-semibold text-foreground leading-snug">
-                    {activeThread.nextAction.title}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed line-clamp-2">
-                    {activeThread.nextAction.rationale}
-                  </p>
-                </div>
-                <ArrowUpRight size={18} className="text-muted-foreground/40 shrink-0 mt-1 group-hover:text-foreground transition-colors" />
-              </div>
-            </div>
-          </button>
-        </motion.section>
+      {/* Dark overlay — top to bottom, light at top, dark at bottom for text */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(to bottom, rgba(20,14,8,0.15) 0%, rgba(20,14,8,0.10) 40%, rgba(20,14,8,0.65) 80%, rgba(20,14,8,0.82) 100%)',
+        pointerEvents: 'none',
+      }} />
 
-        {/* Journey Chain — Editorial insight */}
-        {latestChain && (
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground mb-3">
-              Recent Progress
-            </p>
-            <div className="glass-card p-5">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-1 h-8 rounded-full bg-accent" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Learned</p>
-                    <p className="text-sm font-medium text-foreground">{latestChain.learned.title}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 pl-2">
-                  <ArrowRight size={12} className="text-muted-foreground/40" />
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-1 h-8 rounded-full bg-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Practiced</p>
-                    <p className="text-sm font-medium text-foreground">{latestChain.practiced.title}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 pl-2">
-                  <ArrowRight size={12} className="text-muted-foreground/40" />
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-1 h-8 rounded-full bg-accent" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Improved</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {latestChain.improved.skill}
-                      {latestChain.improved.from > 0 && (
-                        <span className="text-accent ml-2 font-semibold">
-                          {latestChain.improved.from} → {latestChain.improved.to}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.section>
+      {/* Horsera wordmark — top left */}
+      <div style={{ position: 'absolute', top: 18, left: 20 }}>
+        <p style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: '14px',
+          color: 'rgba(250,247,243,0.70)',
+          letterSpacing: '0.06em',
+        }}>
+          Horsera
+        </p>
+      </div>
+
+      {/* Content — bottom of hero */}
+      <div style={{ position: 'absolute', bottom: 22, left: 20, right: 20 }}>
+        <p style={{
+          fontFamily: "'DM Mono', monospace",
+          fontSize: '9.5px',
+          color: 'rgba(201,169,110,0.90)',
+          letterSpacing: '0.2em',
+          textTransform: 'uppercase',
+          marginBottom: '6px',
+        }}>
+          {mockRider.track === 'usdf' ? 'USDF Dressage' : 'Pony Club'} · with {mockRider.horse}
+        </p>
+        <h1 style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: '28px',
+          fontWeight: 400,
+          color: '#FAF7F3',
+          lineHeight: 1.1,
+          marginBottom: '4px',
+          textShadow: '0 1px 8px rgba(0,0,0,0.30)',
+        }}>
+          Good morning,<br />{mockRider.firstName}.
+        </h1>
+        {activeMilestone && (
+          <p style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '12px',
+            color: 'rgba(250,247,243,0.75)',
+            marginTop: '6px',
+          }}>
+            Focus: {activeMilestone.name} · {activeMilestone.ridesConsistent}/{activeMilestone.ridesRequired} rides
+          </p>
         )}
-
-        {/* Skills at a glance */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.55 }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
-              Skills
-            </p>
-            <button
-              onClick={() => navigate("/progress")}
-              className="text-xs text-accent font-medium flex items-center gap-0.5"
-            >
-              View all <ChevronRight size={12} />
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {activeThread.skillTrajectories.slice(0, 4).map((skill, i) => {
-              const latest = skill.dataPoints[skill.dataPoints.length - 1];
-              const trendColor = skill.trend === "improving" ? "text-primary" : skill.trend === "plateau" ? "text-accent" : "text-muted-foreground";
-              return (
-                <motion.div
-                  key={skill.name}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 + i * 0.05 }}
-                  className="glass-card p-4"
-                >
-                  <p className="text-xs text-muted-foreground mb-1">{skill.name}</p>
-                  <p className="text-2xl font-display font-semibold text-foreground">
-                    {latest?.score || "—"}
-                    <span className="text-sm text-muted-foreground font-body font-normal">/5</span>
-                  </p>
-                  <p className={`text-[10px] font-medium mt-1 capitalize ${trendColor}`}>
-                    {skill.trend}
-                  </p>
-                </motion.div>
-              );
-            })}
-          </div>
-        </motion.section>
-
-        {/* Trainer Feedback — elegant quote */}
-        {trainerFeedback && (
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.65 }}
-          >
-            <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground mb-3">
-              Trainer Feedback
-            </p>
-            <div className="glass-card p-5 border-l-2 border-l-accent">
-              <p className="text-sm font-display italic text-foreground leading-relaxed">
-                "{trainerFeedback.trainerNote}"
-              </p>
-              <p className="text-xs text-muted-foreground mt-3">
-                {trainerFeedback.trainerName} · {trainerFeedback.date}
-              </p>
-            </div>
-          </motion.section>
-        )}
-
-        {/* Genie nudge — subtle */}
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          onClick={() => navigate("/genie")}
-          className="w-full glass-card p-4 flex items-center gap-4 active:scale-[0.98] transition-transform"
-        >
-          <div className="w-10 h-10 rounded-2xl bg-sage-light flex items-center justify-center">
-            <Sparkles size={16} className="text-primary" />
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-sm font-medium text-foreground">Ask about your progress</p>
-            <p className="text-xs text-muted-foreground">3 rides without trainer review</p>
-          </div>
-          <ChevronRight size={14} className="text-muted-foreground/40" />
-        </motion.button>
-
-        {/* Timeline — minimal horizontal */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.75 }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
-              Journey
-            </p>
-            <button
-              onClick={() => navigate("/progress")}
-              className="text-xs text-accent font-medium flex items-center gap-0.5"
-            >
-              Full view <ChevronRight size={12} />
-            </button>
-          </div>
-          <div className="flex gap-2.5 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
-            {activeThread.entries.slice(-5).map((entry) => {
-              const config = entryTypeConfig[entry.type];
-              return (
-                <div key={entry.id} className="glass-card p-3.5 min-w-[140px] max-w-[160px] shrink-0">
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">
-                    {config.label}
-                  </p>
-                  <p className="text-xs font-medium text-foreground truncate">{entry.title}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">{entry.date}</p>
-                </div>
-              );
-            })}
-          </div>
-        </motion.section>
       </div>
     </div>
   );
-};
+}
 
-export default HomePage;
+// ─── Weekly ride frequency bar ────────────────────────────────────────────────
+
+function WeekBar() {
+  const maxDuration = Math.max(...mockWeek.filter(d => d.ridden).map(d => d.duration || 0));
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '36px' }}>
+      {mockWeek.map((day, i) => (
+        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <div style={{
+            width: '100%',
+            height: day.ridden ? `${Math.round((day.duration! / maxDuration) * 28) + 6}px` : '4px',
+            background: day.isToday
+              ? '#8C5A3C'
+              : day.ridden
+              ? '#C9A96E'
+              : '#EDE7DF',
+            borderRadius: '3px',
+            transition: 'height 0.3s ease',
+            alignSelf: 'flex-end',
+          }} />
+          <span style={{
+            fontSize: '9px',
+            color: day.isToday ? '#8C5A3C' : '#B5A898',
+            fontFamily: "'DM Mono', monospace",
+            fontWeight: day.isToday ? 600 : 400,
+          }}>
+            {day.day}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+export default function HomePage() {
+  const navigate = useNavigate();
+  const { openCadence } = useCadence();
+
+  const latestRide = mockRides[0];
+  const activeMilestone = mockGoal.milestones.find(m => m.state === 'working');
+  const latestBiometrics = biometricsTrend[biometricsTrend.length - 1];
+  const ridesThisWeek = mockWeek.filter(d => d.ridden).length;
+
+  const signalConfig = {
+    improving:    { color: '#7D9B76', symbol: '↑', label: 'Improving' },
+    consistent:   { color: '#C9A96E', symbol: '→', label: 'Consistent' },
+    'needs-work': { color: '#C4714A', symbol: '↓', label: 'Needs work' },
+  };
+
+  const metricTiles = [
+    { label: 'Lower Leg',  value: Math.round(latestBiometrics.lowerLeg * 100),  color: '#8C5A3C' },
+    { label: 'Reins',      value: Math.round(latestBiometrics.reins * 100),      color: '#C9A96E' },
+    { label: 'Core',       value: Math.round(latestBiometrics.core * 100),       color: '#7D9B76' },
+    { label: 'Posture',    value: Math.round(latestBiometrics.upperBody * 100),  color: '#6B7FA3' },
+  ];
+
+  return (
+    <div style={{ background: '#FAF7F3', minHeight: '100%' }}>
+
+      {/* Hero */}
+      <HeroPlaceholder />
+
+      <div style={{ padding: '4px 20px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+        {/* ── Next step CTA ── */}
+        {activeMilestone && (
+          <button
+            onClick={() => navigate('/rides')}
+            style={{
+              width: '100%', textAlign: 'left',
+              background: '#8C5A3C',
+              borderRadius: '18px',
+              padding: '16px 18px',
+              border: 'none', cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(140,90,60,0.25)',
+            }}
+          >
+            <p style={{
+              fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: 'rgba(250,247,243,0.6)',
+              fontFamily: "'DM Sans', sans-serif", marginBottom: '5px',
+            }}>
+              Today's Focus
+            </p>
+            <p style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: '18px', fontWeight: 400,
+              color: '#FAF7F3', lineHeight: 1.25, marginBottom: '4px',
+            }}>
+              {activeMilestone.name}
+            </p>
+            <p style={{
+              fontSize: '12px', color: 'rgba(201,169,110,0.85)',
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              {activeMilestone.performanceTasks[0]} · {activeMilestone.ridesConsistent}/{activeMilestone.ridesRequired} rides consistent →
+            </p>
+          </button>
+        )}
+
+        {/* ── Cadence insight ── */}
+        <CadenceInsightCard text={cadenceInsights.home} />
+
+        {/* ── Your Position snapshot ── */}
+        <section>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <p style={{
+              fontSize: '10px', fontWeight: 600, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: '#B5A898',
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              Your Position
+            </p>
+            <button
+              onClick={() => navigate('/insights')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#8C5A3C', fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}
+            >
+              View trends →
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+            {metricTiles.map(tile => (
+              <div key={tile.label} style={{
+                background: '#FFFFFF',
+                borderRadius: '14px',
+                padding: '10px 8px',
+                textAlign: 'center',
+                boxShadow: '0 1px 6px rgba(26,20,14,0.05)',
+              }}>
+                <p style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: '17px', fontWeight: 500,
+                  color: tile.color, marginBottom: '3px',
+                }}>
+                  {tile.value}
+                </p>
+                <p style={{ fontSize: '9px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}>
+                  {tile.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Most recent ride ── */}
+        {latestRide && (
+          <section>
+            <p style={{
+              fontSize: '10px', fontWeight: 600, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: '#B5A898',
+              fontFamily: "'DM Sans', sans-serif", marginBottom: '10px',
+            }}>
+              Last Ride
+            </p>
+            <button
+              onClick={() => navigate(`/rides/${latestRide.id}`)}
+              style={{
+                width: '100%', textAlign: 'left',
+                background: '#FFFFFF', borderRadius: '16px', padding: '14px 16px',
+                border: 'none', cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(26,20,14,0.05)',
+                display: 'flex', alignItems: 'center', gap: '12px',
+              }}
+            >
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                background: signalConfig[latestRide.signal].color,
+              }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '13px', fontWeight: 500, color: '#1A140E', fontFamily: "'DM Sans', sans-serif", marginBottom: '2px' }}>
+                  {latestRide.focusMilestone}
+                </p>
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10.5px', color: '#B5A898' }}>
+                  {new Date(latestRide.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {latestRide.duration}min · {signalConfig[latestRide.signal].label}
+                </p>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M9 6l6 6-6 6" stroke="#D4C9BC" strokeWidth="1.7" strokeLinecap="round" />
+              </svg>
+            </button>
+          </section>
+        )}
+
+        {/* ── This week ── */}
+        <section>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <p style={{
+              fontSize: '10px', fontWeight: 600, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: '#B5A898',
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              This Week
+            </p>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: '#8C5A3C', fontWeight: 500 }}>
+              {ridesThisWeek} / 7
+            </span>
+          </div>
+          <div style={{
+            background: '#FFFFFF', borderRadius: '14px', padding: '12px 14px',
+            boxShadow: '0 1px 6px rgba(26,20,14,0.05)',
+          }}>
+            <WeekBar />
+          </div>
+        </section>
+
+        {/* ── Upcoming competition ── */}
+        {mockRider.upcomingCompetition && (
+          <section>
+            <p style={{
+              fontSize: '10px', fontWeight: 600, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: '#B5A898',
+              fontFamily: "'DM Sans', sans-serif", marginBottom: '10px',
+            }}>
+              Upcoming
+            </p>
+            <div style={{
+              background: '#FFFFFF', borderRadius: '16px', padding: '14px 16px',
+              boxShadow: '0 2px 8px rgba(26,20,14,0.05)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <div>
+                <p style={{ fontSize: '13px', fontWeight: 500, color: '#1A140E', fontFamily: "'DM Sans', sans-serif", marginBottom: '2px' }}>
+                  {mockRider.upcomingCompetition.name}
+                </p>
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '10.5px', color: '#B5A898' }}>
+                  {mockRider.upcomingCompetition.level} · {mockRider.upcomingCompetition.tests.join(', ')}
+                </p>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '20px', fontWeight: 500, color: '#8C5A3C', lineHeight: 1 }}>
+                  {mockRider.upcomingCompetition.daysAway}
+                </p>
+                <p style={{ fontSize: '9px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}>days</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── Ask Cadence ── */}
+        <button
+          onClick={openCadence}
+          style={{
+            width: '100%', textAlign: 'left',
+            background: '#F1F4FA', borderRadius: '16px', padding: '14px 16px',
+            border: '1px solid rgba(107,127,163,0.15)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '12px',
+            boxShadow: '0 1px 6px rgba(26,20,14,0.04)',
+          }}
+        >
+          <div style={{
+            width: 36, height: 36, borderRadius: '10px',
+            background: '#6B7FA3',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#EEF2F8' }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '13px', fontWeight: 500, color: '#1A140E', fontFamily: "'DM Sans', sans-serif", marginBottom: '1px' }}>
+              Ask Cadence
+            </p>
+            <p style={{ fontSize: '11px', color: '#6B7FA3', fontFamily: "'DM Sans', sans-serif" }}>
+              Your intelligent riding advisor
+            </p>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M9 6l6 6-6 6" stroke="#6B7FA3" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
+        </button>
+
+      </div>
+    </div>
+  );
+}

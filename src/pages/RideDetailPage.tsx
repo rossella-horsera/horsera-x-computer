@@ -1,5 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import CadenceInsightCard from '../components/ui/CadenceInsightCard';
+import VideoAnalysis from '../components/ui/VideoAnalysis';
+import { useVideoAnalysis } from '../hooks/useVideoAnalysis';
+import { generateInsights } from '../lib/poseAnalysis';
 import { mockRides, mockGoal } from '../data/mock';
 
 const signalConfig = {
@@ -23,6 +26,10 @@ export default function RideDetailPage() {
   const ride = mockRides.find(r => r.id === id) || mockRides[0];
   const signal = signalConfig[ride.signal];
   const milestone = mockGoal.milestones.find(m => m.id === ride.milestoneId);
+
+  // Previous ride biometrics — used by the analysis hook to compute trend arrows
+  const prevRide = mockRides.find(r => r.id !== ride.id && r.biometrics);
+  const { status, progress, result, error, analyzeVideo } = useVideoAnalysis(prevRide?.biometrics);
 
   const d = new Date(ride.date);
   const dateStr = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -130,7 +137,7 @@ export default function RideDetailPage() {
           <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 10px rgba(26,20,14,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div style={{ fontSize: '10px', fontWeight: 600, color: '#B5A898', letterSpacing: '0.14em', textTransform: 'uppercase', fontFamily: "'DM Sans', sans-serif" }}>
-                Biomechanics
+                Your Position
               </div>
               <div style={{ fontSize: '10px', color: '#6B7FA3', background: '#F1F4FA', padding: '3px 8px', borderRadius: '8px', fontFamily: "'DM Sans', sans-serif" }}>
                 AI-assisted · Sample Data
@@ -161,32 +168,18 @@ export default function RideDetailPage() {
           </div>
         )}
 
-        {ride.videoUploaded ? (
-          <div style={{ background: '#1C1510', borderRadius: '16px', padding: '16px', aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '28px', marginBottom: '8px' }}>▶</div>
-              <div style={{ fontSize: '13px', color: '#FAF7F3', fontFamily: "'DM Sans', sans-serif", opacity: 0.7 }}>
-                Video uploaded
-              </div>
-              <div style={{ fontSize: '11px', color: '#C9A96E', fontFamily: "'DM Sans', sans-serif", marginTop: '4px' }}>
-                Biomechanics analysis complete
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div style={{
-            border: '1.5px dashed #EDE7DF', borderRadius: '16px',
-            padding: '20px', textAlign: 'center', cursor: 'pointer',
-          }}>
-            <div style={{ fontSize: '20px', marginBottom: '6px' }}>🎬</div>
-            <div style={{ fontSize: '13px', fontWeight: 500, color: '#7A6B5D', fontFamily: "'DM Sans', sans-serif" }}>
-              Add a video to this ride
-            </div>
-            <div style={{ fontSize: '11px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif", marginTop: '2px' }}>
-              Cadence will analyse your biomechanics
-            </div>
-          </div>
-        )}
+        <VideoAnalysis
+          hasVideo={ride.videoUploaded}
+          analysisResult={result}
+          analysisStatus={status}
+          analysisProgress={progress}
+          analysisError={error}
+          onVideoSelected={analyzeVideo}
+          mockBiometrics={ride.biometrics}
+          mockInsights={ride.videoUploaded && ride.biometrics
+            ? generateInsights(ride.biometrics, prevRide?.biometrics)
+            : undefined}
+        />
 
       </div>
     </div>

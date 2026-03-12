@@ -273,7 +273,7 @@ export default function InsightsPage() {
           Insights
         </h1>
         <p style={{ fontSize: '12px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif", margin: '0 0 16px' }}>
-          4-week biomechanics overview
+          4-week position overview
         </p>
 
         <div style={{

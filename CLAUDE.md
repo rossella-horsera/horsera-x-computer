@@ -2,10 +2,29 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Agent Team — Read First
+
+Before starting any work in this repository, read these files in order:
+
+1. _agents/SKILLS.md — shared Horsera product context, design DNA, and working principles
+2. _agents/TEAM.md — the four agents (Ross, Lauren, Beau, Quinn) and how they work together
+3. _agents/MEMORY.md — what the team knows, current product state, session history
+4. _agents/FEEDBACK.md — Rossella's standing instructions on how to work (always apply these)
+5. _agents/DAILY.md — today's proposed plan (must be approved before work begins)
+6. _agents/WEEKLY.md — weekly accomplishments and current priorities
+7. _agents/CHANGELOG.md — what has changed recently
+8. _agents/DECISIONS.md — why key decisions were made
+
+After reading all agent files, confirm you have done so and briefly state current product state and today's proposed plan. Do not begin any work until Rossella has approved the daily plan.
+
+## Product Documents
+
+_product-docs/ contains source documents that have been distilled into MEMORY.md. Only read specific files in _product-docs/ when you need depth on a particular topic (e.g. biomechanics metrics, progression maps). Do not re-read all docs every session.
+
 ## Commands
 
 ```bash
-npm run dev       # Start Vite dev server (localhost:5173)
+npm run dev       # Start Vite dev server (localhost:8080)
 npm run build     # Type-check (tsc) then build for production
 npm run preview   # Preview production build
 npm run lint      # ESLint over src/ (ts, tsx)

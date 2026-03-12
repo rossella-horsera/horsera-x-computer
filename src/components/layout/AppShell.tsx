@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import BottomNav from './BottomNav';
 import CadenceFAB from './CadenceFAB';
-import CadenceDrawer from './CadenceDrawer';
+import { CadenceProvider, useCadence } from '../../context/CadenceContext';
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
-export default function AppShell({ children }: AppShellProps) {
-  const [cadenceOpen, setCadenceOpen] = useState(false);
+function AppShellInner({ children }: AppShellProps) {
+  const { openCadence } = useCadence();
 
   return (
     <div
@@ -27,21 +27,65 @@ export default function AppShell({ children }: AppShellProps) {
         body { margin: 0; background: #FAF7F3; }
         ::-webkit-scrollbar { display: none; }
         scrollbar-width: none;
+        @keyframes cadence-breathe {
+          0%   { transform: scale(1);    opacity: 1; }
+          38%  { transform: scale(1.13); opacity: 0.85; }
+          100% { transform: scale(1);    opacity: 1; }
+        }
+        @keyframes cadence-glow {
+          0%, 100% { box-shadow: 0 4px 20px rgba(0,0,0,0.28), 0 0 0 1px rgba(201,169,110,0.18), 0 0 0px rgba(201,169,110,0); }
+          38%  { box-shadow: 0 4px 20px rgba(0,0,0,0.28), 0 0 0 1px rgba(201,169,110,0.50), 0 0 28px rgba(201,169,110,0.32); }
+          100% { box-shadow: 0 4px 20px rgba(0,0,0,0.28), 0 0 0 1px rgba(201,169,110,0.18), 0 0 0px rgba(201,169,110,0); }
+        }
+        @keyframes cadence-ripple {
+          0%   { transform: scale(1);   opacity: 0.45; }
+          80%  { transform: scale(1.85); opacity: 0; }
+          100% { transform: scale(1.85); opacity: 0; }
+        }
       `}</style>
+
+      {/* ── Top header bar — Horsera brand mark ── */}
+      <header style={{
+        position: 'fixed',
+        top: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: '430px',
+        height: '48px',
+        background: 'rgba(250,247,243,0.95)',
+        backdropFilter: 'blur(16px)',
+        borderBottom: '1px solid #EDE7DF',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 50,
+        flexShrink: 0,
+      }}>
+        <img
+          src="/horsera-logo.png"
+          alt="Horsera"
+          style={{ height: '30px', width: 'auto', display: 'block' }}
+        />
+      </header>
 
       <main
         className="flex-1 overflow-y-auto"
-        style={{ paddingBottom: '82px' }}
+        style={{ paddingBottom: '82px', paddingTop: '48px' }}
       >
         {children}
       </main>
 
       <BottomNav />
-      <CadenceFAB onClick={() => setCadenceOpen(true)} />
-      <CadenceDrawer
-        open={cadenceOpen}
-        onClose={() => setCadenceOpen(false)}
-      />
+      <CadenceFAB onClick={openCadence} />
     </div>
+  );
+}
+
+export default function AppShell({ children }: AppShellProps) {
+  return (
+    <CadenceProvider>
+      <AppShellInner>{children}</AppShellInner>
+    </CadenceProvider>
   );
 }

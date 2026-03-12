@@ -8,6 +8,54 @@
 export type MilestoneState = 'untouched' | 'working' | 'mastered';
 export type RideType = 'training' | 'lesson' | 'mock-test' | 'hack';
 export type DisciplineTrack = 'usdf' | 'pony-club' | 'hunter-jumper';
+export type DisciplineLevel = 'intro' | 'training' | 'first' | 'second' | 'third';
+export type GoalType = 'competition' | 'experience' | 'skill';
+
+export interface DisciplineLevelDef {
+  id: DisciplineLevel;
+  label: string;
+  fullName: string;
+  description: string;
+  performanceTasks: string[]; // what rider must demonstrate at this level
+}
+
+export const USDF_LEVELS: DisciplineLevelDef[] = [
+  {
+    id: 'intro',
+    label: 'Intro',
+    fullName: 'Intro Level',
+    description: 'Walk & trot basics, relaxation, straightness',
+    performanceTasks: ['20m walk circle', 'Rising trot across diagonal', 'Free walk on loose rein', 'Halt and salute on centerline'],
+  },
+  {
+    id: 'training',
+    label: 'Training',
+    fullName: 'Training Level',
+    description: 'Steady contact, balanced canter',
+    performanceTasks: ['20m trot circle (both reins)', 'Free walk on long rein', 'Working canter, 20m circle', 'Walk–trot transitions at markers', 'Halt & salute'],
+  },
+  {
+    id: 'first',
+    label: 'First',
+    fullName: 'First Level',
+    description: 'Bend, balance, lateral work',
+    performanceTasks: ['Leg yield from centerline to track', '15m trot circles', 'Lengthened trot diagonal', 'Canter serpentine', 'Medium walk to collected walk'],
+  },
+  {
+    id: 'second',
+    label: 'Second',
+    fullName: 'Second Level',
+    description: 'Collection begins, shoulder-in',
+    performanceTasks: ['Shoulder-in at trot', 'Travers (haunches-in)', 'Counter canter 20m circle', 'Rein back (3–4 steps)', 'Collected and medium trot'],
+  },
+  {
+    id: 'third',
+    label: 'Third',
+    fullName: 'Third Level',
+    description: 'Flying changes, half-pass',
+    performanceTasks: ['Simple flying change of lead', 'Half-pass at trot and canter', 'Collected walk pirouette', 'Extended trot across diagonal', 'Shoulder-in to renvers'],
+  },
+];
 
 export interface BiometricsSnapshot {
   lowerLegStability:   number;
@@ -24,11 +72,13 @@ export interface Milestone {
   state: MilestoneState;
   ridesConsistent: number;
   ridesRequired: number;
+  disciplineLevel?: DisciplineLevel; // only for level-based (USDF/Pony Club) goals
   biomechanicsFocus: string[];
   ridingQuality: string;
   performanceTasks: string[];
   exercises: Exercise[];
   description: string;
+  cadenceNote?: string; // context-sensitive Cadence insight when this skill is selected
 }
 
 export interface Exercise {
@@ -42,10 +92,13 @@ export interface Exercise {
 export interface Goal {
   id: string;
   name: string;
-  track: DisciplineTrack;
-  level: string;
-  test: string;
-  targetDate: string;
+  type: GoalType;
+  description?: string;
+  track?: DisciplineTrack;
+  level?: string;
+  currentDisciplineLevel?: DisciplineLevel;
+  test?: string;
+  targetDate?: string;
   milestones: Milestone[];
 }
 
@@ -173,79 +226,183 @@ export const exercises: Record<string, Exercise[]> = {
 };
 
 // ─────────────────────────────────────────────────────────
-// GOAL + MILESTONES
+// GOAL 1 — USDF Training Level (competition)
 // ─────────────────────────────────────────────────────────
 
-export const mockGoal: Goal = {
-  id: 'goal-001',
-  name: 'USDF Training Level',
-  track: 'usdf',
-  level: 'Training Level',
-  test: 'Test 1',
-  targetDate: '2026-03-31',
-  milestones: [
-    {
-      id: 'ms-001',
-      name: 'Lower Leg Stability',
-      state: 'working',
-      ridesConsistent: 3,
-      ridesRequired: 5,
-      biomechanicsFocus: ['Lower Leg Stability', 'Knee Angle Stability', 'Heel Position'],
-      ridingQuality: 'Balance & Rhythm',
-      performanceTasks: ['20m trot circle', 'Walk–trot transitions'],
-      exercises: exercises['lower-leg-stability'],
-      description: 'A stable lower leg anchors everything else. When your leg swings, your whole body compensates. This milestone builds the foundation your Training Level work depends on.',
-    },
-    {
-      id: 'ms-002',
-      name: 'Rein Steadiness',
-      state: 'working',
-      ridesConsistent: 4,
-      ridesRequired: 5,
-      biomechanicsFocus: ['Rein Steadiness', 'Rein Symmetry', 'Elbow Elasticity'],
-      ridingQuality: 'Contact',
-      performanceTasks: ['Free walk on long rein', 'Consistent contact in trot'],
-      exercises: exercises['rein-steadiness'],
-      description: 'Steady, elastic hands create consistent contact — the foundation of a horse\'s trust and throughness. This milestone focuses on reducing unnecessary hand movement.',
-    },
-    {
-      id: 'ms-003',
-      name: 'Core Stability',
-      state: 'mastered',
-      ridesConsistent: 5,
-      ridesRequired: 5,
-      biomechanicsFocus: ['Core Stability', 'Pelvis Vertical Stability', 'Trunk Angle Stability'],
-      ridingQuality: 'Rhythm & Relaxation',
-      performanceTasks: ['Canter transitions', 'Sitting trot'],
-      exercises: exercises['core-stability'],
-      description: 'A stable, elastic core allows you to follow the horse\'s movement without bouncing or bracing. Mastering this enables everything from better sitting trot to cleaner canter transitions.',
-    },
-    {
-      id: 'ms-004',
-      name: 'Upper Body Alignment',
-      state: 'untouched',
-      ridesConsistent: 0,
-      ridesRequired: 5,
-      biomechanicsFocus: ['Upper Body Vertical Alignment', 'Shoulder Levelness', 'Torso Rotation'],
-      ridingQuality: 'Straightness',
-      performanceTasks: ['Straight lines on centerline', 'Halt and salute'],
-      exercises: [],
-      description: 'Vertical alignment through the upper body creates straightness and allows aids to be applied cleanly. This milestone addresses leaning, collapsing, and rotation habits.',
-    },
-    {
-      id: 'ms-005',
-      name: 'Symmetry & Balance',
-      state: 'untouched',
-      ridesConsistent: 0,
-      ridesRequired: 5,
-      biomechanicsFocus: ['Left-Right Symmetry Index', 'Rider Centerline Alignment', 'Pelvis Levelness'],
-      ridingQuality: 'Straightness & Balance',
-      performanceTasks: ['Equal circles both directions', 'Balanced free walk'],
-      exercises: [],
-      description: 'True straightness requires the rider to be symmetrical. This milestone addresses the left-right imbalances that cause crookedness in both horse and rider.',
-    },
-  ],
-};
+// Performance-task-centric milestones. Each milestone is named by what the rider
+// demonstrates (the observable task), not by the underlying biomechanics lever.
+// Biomechanics and riding quality are shown as supporting context in the detail view.
+const usdtMilestones: Milestone[] = [
+  {
+    id: 'ms-001',
+    name: '20m Trot Circle',
+    state: 'working',
+    ridesConsistent: 3,
+    ridesRequired: 5,
+    disciplineLevel: 'training',
+    biomechanicsFocus: ['Lower Leg Stability', 'Rein Steadiness'],
+    ridingQuality: 'Rhythm',
+    performanceTasks: ['Maintain rhythm and bend on 20m circle at trot, both reins'],
+    exercises: exercises['lower-leg-stability'],
+    description: 'The 20m circle is the core Training Level movement. It tests rhythm, bend, and consistent contact. Lower leg stability keeps you anchored through the arc; steady reins keep Allegra soft and forward.',
+    cadenceNote: '3 of 5 rides showing consistent circle geometry. The right rein is your weaker side — your lower leg tends to drift forward, breaking the bend. Try weighting the right stirrup through the arc.',
+  },
+  {
+    id: 'ms-002',
+    name: 'Free Walk on Long Rein',
+    state: 'working',
+    ridesConsistent: 4,
+    ridesRequired: 5,
+    disciplineLevel: 'training',
+    biomechanicsFocus: ['Rein Steadiness', 'Rein Symmetry', 'Pelvis Vertical Stability'],
+    ridingQuality: 'Contact & Relaxation',
+    performanceTasks: ['Allow horse to stretch forward-down while maintaining direction and rhythm'],
+    exercises: exercises['rein-steadiness'],
+    description: 'Free walk is one of the highest-weighted movements in Training Level tests. It requires you to gradually yield the rein while Allegra stretches forward and down — a true test of rein elasticity and trust.',
+    cadenceNote: 'Almost mastered — 4 of 5. The tunnel rein exercise has clearly worked. One more ride where the yield is gradual and Allegra tracks up, and this is done.',
+  },
+  {
+    id: 'ms-003',
+    name: 'Working Canter Transition',
+    state: 'mastered',
+    ridesConsistent: 5,
+    ridesRequired: 5,
+    disciplineLevel: 'training',
+    biomechanicsFocus: ['Core Stability', 'Pelvis Vertical Stability', 'Lower Leg Stability'],
+    ridingQuality: 'Rhythm & Balance',
+    performanceTasks: ['Balanced trot-to-canter departure, maintain 20m circle at canter'],
+    exercises: exercises['core-stability'],
+    description: 'A clean canter transition requires core stability to absorb the gait change without bracing, and a quiet lower leg to give the aid without disturbing the hind leg. Your core work unlocked this.',
+    cadenceNote: 'Mastered. Canter transitions have been clean and balanced for 5 consecutive rides. Your core stability is carrying you through — this is now a genuine strength.',
+  },
+  {
+    id: 'ms-004',
+    name: 'Halt & Salute',
+    state: 'untouched',
+    ridesConsistent: 0,
+    ridesRequired: 5,
+    disciplineLevel: 'training',
+    biomechanicsFocus: ['Upper Body Vertical Alignment', 'Core Stability', 'Rein Symmetry'],
+    ridingQuality: 'Straightness',
+    performanceTasks: ['Square halt on centerline, hold 3+ seconds, drop reins for salute'],
+    exercises: [],
+    description: 'The halt and salute opens and closes every dressage test. A square halt requires straightness from poll to tail — which means the rider must be straight first. Upper body alignment is your key lever here.',
+  },
+  {
+    id: 'ms-005',
+    name: 'Walk–Trot Transitions',
+    state: 'untouched',
+    ridesConsistent: 0,
+    ridesRequired: 5,
+    disciplineLevel: 'training',
+    biomechanicsFocus: ['Core Stability', 'Lower Leg Stability', 'Rein Steadiness'],
+    ridingQuality: 'Rhythm & Impulsion',
+    performanceTasks: ['Prompt, balanced transitions at markers — no loss of rhythm or contact'],
+    exercises: [],
+    description: 'Transitions are judged throughout Training Level tests. A balanced transition happens when the horse is prepared through the body, not pulled through the reins. Your core and lower leg stability feed directly into this.',
+  },
+  // ── Reaching ahead: First Level task already being explored ──
+  {
+    id: 'ms-006',
+    name: 'Leg Yield',
+    state: 'working',
+    ridesConsistent: 1,
+    ridesRequired: 5,
+    disciplineLevel: 'first',
+    biomechanicsFocus: ['Weight Distribution', 'Timing of Aids', 'Rein Symmetry'],
+    ridingQuality: 'Straightness & Impulsion',
+    performanceTasks: ['Leg yield from centerline to track at trot, maintaining rhythm'],
+    exercises: [],
+    description: 'Leg yield is the first lateral movement required at First Level. The horse moves forward and sideways, maintaining rhythm. Your lower leg stability and symmetry work is the direct foundation for this.',
+    cadenceNote: 'You\'re already exploring First Level work while consolidating Training Level — that\'s how riders develop. Early days (1/5) but the instinct is right. Your symmetry work feeds directly into this.',
+  },
+];
+
+// ─────────────────────────────────────────────────────────
+// GOAL 2 — Feel Confident on Trail Rides (experience)
+// ─────────────────────────────────────────────────────────
+
+const trailMilestones: Milestone[] = [
+  {
+    id: 'ms-t001',
+    name: 'Relaxed Walk on Varied Terrain',
+    state: 'working',
+    ridesConsistent: 4,
+    ridesRequired: 5,
+    biomechanicsFocus: ['Lower Leg Stability', 'Core Stability', 'Upper Body Relaxation'],
+    ridingQuality: 'Relaxation & Balance',
+    performanceTasks: ['Walk on loose rein over new ground', 'Maintain rhythm on uneven footing'],
+    exercises: [],
+    description: 'The foundation of trail confidence. A relaxed walk on varied terrain requires you to absorb ground movement through a soft leg and quiet seat — letting Allegra focus on where she\'s going.',
+    cadenceNote: 'Almost there — 4 of 5 rides showing relaxed, consistent walk. One more strong session and this becomes your first trail milestone mastered. Your lower leg stability work from the arena is clearly transferring.',
+  },
+  {
+    id: 'ms-t002',
+    name: 'Calm in New Environments',
+    state: 'working',
+    ridesConsistent: 2,
+    ridesRequired: 5,
+    biomechanicsFocus: ['Core Stability', 'Rein Steadiness', 'Seat Independence'],
+    ridingQuality: 'Relaxation & Contact',
+    performanceTasks: ['Maintain rhythm when horse spooks', 'Ride past new objects without tension'],
+    exercises: [],
+    description: 'Your body language communicates directly to Allegra. When you tighten, she tightens. This milestone builds the body awareness to stay physically soft when the environment is novel.',
+    cadenceNote: 'A longer journey — 2 of 5. The key question: when do you first feel yourself brace? The spooky rides are actually your most useful data. Rein steadiness from your dressage work is your biggest asset here.',
+  },
+  {
+    id: 'ms-t003',
+    name: 'Confident Solo Riding',
+    state: 'untouched',
+    ridesConsistent: 0,
+    ridesRequired: 5,
+    biomechanicsFocus: ['Core Stability', 'Lower Leg Stability', 'Weight Distribution'],
+    ridingQuality: 'Balance & Relaxation',
+    performanceTasks: ['Complete solo trail loop', 'Handle unexpected situations independently'],
+    exercises: [],
+    description: 'Riding independently develops your own decision-making and deepens the trust between you and Allegra. This milestone unlocks once your environment-calm foundation is solid.',
+  },
+  {
+    id: 'ms-t004',
+    name: 'Terrain Adaptability',
+    state: 'untouched',
+    ridesConsistent: 0,
+    ridesRequired: 5,
+    biomechanicsFocus: ['Weight Distribution', 'Seat Independence', 'Lower Leg Stability'],
+    ridingQuality: 'Balance & Adjustability',
+    performanceTasks: ['Ride uphill without tipping forward', 'Navigate downhill without bracing'],
+    exercises: [],
+    description: 'Hills and uneven terrain require constant weight redistribution. This milestone builds the physical adaptability to ride any terrain without disrupting Allegra\'s balance.',
+  },
+];
+
+// ─────────────────────────────────────────────────────────
+// GOALS
+// ─────────────────────────────────────────────────────────
+
+export const mockGoals: Goal[] = [
+  {
+    id: 'goal-001',
+    name: 'USDF Training Level',
+    type: 'competition',
+    description: 'Compete at Training Level Test 1 & 2',
+    track: 'usdf',
+    level: 'Training Level',
+    currentDisciplineLevel: 'training',
+    test: 'Test 1',
+    targetDate: '2026-03-31',
+    milestones: usdtMilestones,
+  },
+  {
+    id: 'goal-002',
+    name: 'Feel Confident on Trail Rides',
+    type: 'experience',
+    description: 'Build confidence riding independently outside the arena',
+    milestones: trailMilestones,
+  },
+];
+
+// Backward-compatible alias — other screens (Rides, Insights, Home) still reference this
+export const mockGoal: Goal = mockGoals[0];
 
 // ─────────────────────────────────────────────────────────
 // RIDES
@@ -372,7 +529,7 @@ export const biometricsTrend = [
 // Cadence pattern insights
 export const cadenceInsights = {
   home: 'Your rein steadiness improved across the last 3 rides. Lower leg is now your main unlock for Training Level Test 1.',
-  journey: 'Based on your last 6 rides, you\'re on track to consolidate Lower Leg Stability by late March — right before the Spring Classic.',
+  journey: 'Two Training Level skills remain. At your current pace, Lower Leg Stability consolidates by late March — just before the Spring Classic. Your leg yield work is already beginning to show.',
   insights: 'Core Stability is your strongest area — mastered. The pattern across your last 8 rides shows rein steadiness improving consistently. Lower leg stability is improving but shows right-rein drift that may need targeted focus.',
   rideDetail: 'This ride showed a 12% improvement in lower leg stability. The right-rein drift pattern appeared again — 4 consecutive rides with the same pattern. This is likely worth discussing with Sarah at your next lesson.',
 };

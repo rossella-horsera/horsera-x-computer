@@ -180,7 +180,7 @@ export default function RidesPage() {
                   Upload video (optional)
                 </div>
                 <div style={{ fontSize: '11px', color: '#C9A96E', fontFamily: "'DM Sans', sans-serif", marginTop: '2px' }}>
-                  Cadence will analyse your biomechanics
+                  Cadence will analyse your position
                 </div>
               </div>
 
