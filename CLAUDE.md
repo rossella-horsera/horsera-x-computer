@@ -6,65 +6,58 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Before starting any work in this repository, read these files in order:
 
-1. _agents/SKILLS.md — shared Horsera product context, design DNA, and working principles
-2. _agents/TEAM.md — the four agents (Ross, Lauren, Beau, Quinn) and how they work together
-3. _agents/MEMORY.md — what the team knows, current product state, session history
-4. _agents/FEEDBACK.md — Rossella's standing instructions on how to work (always apply these)
-5. _agents/DAILY.md — today's proposed plan (must be approved before work begins)
-6. _agents/WEEKLY.md — weekly accomplishments and current priorities
-7. _agents/CHANGELOG.md — what has changed recently
-8. _agents/DECISIONS.md — why key decisions were made
+- `_agents/SKILLS.md` — shared Horsera product context, design DNA, and working principles
+- `_agents/TEAM.md` — the four agents (Ross, Lauren, Beau, Quinn) and how they work together
+- `_agents/MEMORY.md` — what the team knows, current product state, session history
+- `_agents/FEEDBACK.md` — Rossella's standing instructions on how to work (always apply these)
+- `_agents/WEEKLY.md` — weekly accomplishments and current priorities
+- `_agents/CHANGELOG.md` — what has changed recently
+- `_agents/DECISIONS.md` — why key decisions were made
 
-After reading all agent files, confirm you have done so and briefly state current product state and today's proposed plan. Do not begin any work until Rossella has approved the daily plan.
+After reading all agent files, confirm you have done so and briefly state current product state. Then immediately check Trello before proposing any work.
 
-## Product Documents
+## Trello — The Plan
 
-_product-docs/ contains source documents that have been distilled into MEMORY.md. Only read specific files in _product-docs/ when you need depth on a particular topic (e.g. biomechanics metrics, progression maps). Do not re-read all docs every session.
+Trello is the single source of truth for all work. There is no separate daily plan file. The board drives every session.
 
-## Commands
+**Board:** https://trello.com/b/Xe7yzxVo/horsera  
+**Board ID:** `Xe7yzxVo`  
+**Credentials:** `TRELLO_API_KEY` and `TRELLO_TOKEN` in `.env`
 
-```bash
-npm run dev       # Start Vite dev server (localhost:8080)
-npm run build     # Type-check (tsc) then build for production
-npm run preview   # Preview production build
-npm run lint      # ESLint over src/ (ts, tsx)
-```
+### Board structure
 
-There is no test suite yet.
+| List | Meaning |
+|------|---------|
+| **To-do** | Rossella's backlog — raw requests waiting to be picked up |
+| **Work in Progress** | Being worked on this session |
+| **Needs Revision** | Delivered but Rossella is not satisfied — read her comment before touching |
+| **Ready for Review** | Complete — awaiting Rossella's approval |
+| **Done 🎉** | Approved and closed |
 
-## Architecture
+### Priority labels (set by Rossella or Ross)
 
-Horsera is a mobile-first React + TypeScript PWA (max-width 430px) for equestrian riders. It tracks biomechanics milestones toward competition goals.
+| Label | Priority |
+|-------|---------|
+| 🔴 Red | P1 — Urgent, do this first |
+| 🟡 Yellow | P2 — Normal priority |
+| 🟢 Green | P3 — Nice to have, do last |
 
-**Routing** (`src/App.tsx`): React Router v6 with five routes wrapped in `AppShell`.
+Cards with no priority label = treat as P2.
 
-**AppShell** (`src/components/layout/AppShell.tsx`): Persistent layout with a fixed `BottomNav`, a floating `CadenceFAB`, and a slide-up `CadenceDrawer`. The main content area scrolls with `paddingBottom: 82px` to clear the nav. Google Fonts (Playfair Display, DM Sans, DM Mono) are injected inline here — noted for migration to `index.html` in production.
+### Agent role labels (set by Ross)
 
-**Pages**:
-- `HomePage` — Dashboard: progress ring for active milestone, today's cue card, Cadence insight, recent ride, weekly frequency bar chart, upcoming competition.
-- `JourneyPage` — Milestone roadmap with `MilestoneNode` components in a vertical timeline.
-- `RidesPage` — Ride log list.
-- `RideDetailPage` — Single ride with biometrics, trainer feedback, and Cadence insight.
-- `InsightsPage` — Biometrics trend charts across sessions.
+| Label | Meaning |
+|-------|---------|
+| 🔵 Blue | Beau leads (dev/code) |
+| 🟣 Purple | Lauren leads (design/visual) |
+| ⬜ White | Ross leads (product/docs/strategy) |
+| 🟠 Orange | Quinn leads (QA/testing) |
 
-**Cadence AI** (`CadenceDrawer`): Currently a keyword-matched mock (`getCadenceResponse`). Marked for replacement with a real AI layer post-MVP.
+---
 
-**Data** (`src/data/mock.ts`): Single source of truth for all MVP data. All pages import from here. Types are co-located in this file. Replace with a real data layer post-MVP.
+## Ross's Role — Requirements & Routing
 
-## Design System
+Ross is the first agent to act on every new To-do card. Before any code or design work begins, Ross must:
 
-Colors are defined in two places — `src/theme/colors.ts` (TS constants) and `tailwind.config.js` (Tailwind tokens). Keep them in sync.
-
-The palette uses semantic names:
-- **Parchment** `#FAF7F3` — primary background
-- **Cognac** `#8C5A3C` — brand primary / CTAs
-- **Champagne** `#C9A96E` — in-progress / working state
-- **Cadence blue** `#6B7FA3` — AI advisor UI
-- **Progress green** `#7D9B76` — mastered / improving
-- **Attention** `#C4714A` — needs focus
-
-Milestone states: `untouched` | `working` | `mastered`
-
-Styling uses **inline styles throughout** (not Tailwind classes) — this is intentional for the MVP. Tailwind is configured but used minimally. Follow the existing pattern when adding UI.
-
-Fonts: Playfair Display (serif, headings/greeting), DM Sans (sans, body), DM Mono (mono, metrics/timestamps).
+### 1. Enrich the card
+Read Rossella's raw request. Rewrite the card description using this structure:
