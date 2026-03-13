@@ -43,6 +43,9 @@ This file records Rossella's feedback on how the team works. All agents read thi
 
 *This section grows over time as Rossella gives feedback. Each entry is dated and attributed.*
 
+### 2026-03-12
+- **Ready for Review must include test instructions** — whenever a card is moved to Ready for Review, the completion comment must include: (1) exact steps to test the change, (2) a screenshot attached to the Trello card showing the relevant UI, (3) deployment status — whether the change is already live, needs a push, or needs a build first. Rossella should never have to guess how to verify the work.
+
 ### 2026-03-11
 - **Visual-first** established as core working style (see Standing Instructions above)
 - **Option A daily workflow** — Ross proposes plan, Rossella approves before work begins
