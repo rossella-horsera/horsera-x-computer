@@ -1,6 +1,7 @@
 // Horsera — useVideoAnalysis hook
 // Loads MoveNet Thunder dynamically, extracts pose frames from an uploaded video,
 // computes biomechanics metrics, and finds the best-moment clip for display.
+// Falls back to mock analysis when TF.js is unavailable (e.g. production bundle).
 
 import { useState, useCallback, useRef } from 'react';
 import {
@@ -29,6 +30,9 @@ export interface VideoAnalysisResult {
   // Static thumbnail fallback (if video playback is blocked)
   thumbnailDataUrl:  string;
   bestFrame:         PoseFrame | null;
+
+  // Whether this is a demo analysis (TF.js unavailable)
+  isDemo?:           boolean;
 }
 
 export type AnalysisStatus =
@@ -41,6 +45,42 @@ export type AnalysisStatus =
 
 const SAMPLE_INTERVAL_SEC = 5;
 const MAX_FRAMES          = 600;
+
+// Generate synthetic PoseFrame data for demo mode
+function generateSyntheticFrames(count: number, duration: number): { allFrames: TimestampedFrame[]; frameKps: PoseFrame[] } {
+  const allFrames: TimestampedFrame[] = [];
+  const frameKps: PoseFrame[] = [];
+  const interval = duration / count;
+
+  for (let i = 0; i < count; i++) {
+    const time = i * interval;
+    // Create a realistic-looking pose with 17 MoveNet keypoints
+    // Simulating a rider in side view with natural variation
+    const variance = () => (Math.random() - 0.5) * 0.02;
+    const kps: PoseFrame = [
+      { x: 0.50 + variance(), y: 0.10 + variance(), score: 0.92 }, // nose
+      { x: 0.49 + variance(), y: 0.08 + variance(), score: 0.88 }, // left eye
+      { x: 0.51 + variance(), y: 0.08 + variance(), score: 0.88 }, // right eye
+      { x: 0.48 + variance(), y: 0.09 + variance(), score: 0.75 }, // left ear
+      { x: 0.52 + variance(), y: 0.09 + variance(), score: 0.75 }, // right ear
+      { x: 0.44 + variance(), y: 0.22 + variance(), score: 0.90 }, // left shoulder
+      { x: 0.56 + variance(), y: 0.22 + variance(), score: 0.90 }, // right shoulder
+      { x: 0.38 + variance(), y: 0.35 + variance(), score: 0.85 }, // left elbow
+      { x: 0.62 + variance(), y: 0.35 + variance(), score: 0.85 }, // right elbow
+      { x: 0.42 + variance(), y: 0.45 + variance(), score: 0.82 }, // left wrist
+      { x: 0.58 + variance(), y: 0.45 + variance(), score: 0.82 }, // right wrist
+      { x: 0.46 + variance(), y: 0.48 + variance(), score: 0.88 }, // left hip
+      { x: 0.54 + variance(), y: 0.48 + variance(), score: 0.88 }, // right hip
+      { x: 0.44 + variance(), y: 0.65 + variance(), score: 0.80 }, // left knee
+      { x: 0.56 + variance(), y: 0.65 + variance(), score: 0.80 }, // right knee
+      { x: 0.43 + variance(), y: 0.82 + variance(), score: 0.78 }, // left ankle
+      { x: 0.57 + variance(), y: 0.82 + variance(), score: 0.78 }, // right ankle
+    ];
+    allFrames.push({ time, frame: kps });
+    frameKps.push(kps);
+  }
+  return { allFrames, frameKps };
+}
 
 export function useVideoAnalysis(previousBiometrics?: BiometricsSnapshot) {
   const [status,   setStatus]   = useState<AnalysisStatus>('idle');
@@ -70,36 +110,14 @@ export function useVideoAnalysis(previousBiometrics?: BiometricsSnapshot) {
     setResult(null);
 
     try {
-      // ── Load TF.js + MoveNet (dynamic import — only on first call) ──
-      const [poseDetection, tfCore] = await Promise.all([
-        import('@tensorflow-models/pose-detection'),
-        import('@tensorflow/tfjs'),
-      ]);
-
-      await (tfCore as { ready: () => Promise<void> }).ready();
-
-      if (!detectorRef.current) {
-        const model = (poseDetection as {
-          SupportedModels: { MoveNet: string };
-          movenet: { modelType: { SINGLEPOSE_THUNDER: string } };
-          createDetector: (model: string, config: object) => Promise<typeof detectorRef.current>;
-        });
-        detectorRef.current = await model.createDetector(
-          model.SupportedModels.MoveNet,
-          { modelType: model.movenet.modelType.SINGLEPOSE_THUNDER }
-        );
-      }
-
-      // ── Load video ──────────────────────────────────────────────────
-      setStatus('extracting');
-
-      // Create ONE blob URL — kept alive for playback after analysis
+      // Create blob URL for video playback (needed for both real and demo modes)
       const videoPlaybackUrl = URL.createObjectURL(file);
       prevPlaybackUrlRef.current = videoPlaybackUrl;
 
+      // Load video to get duration and thumbnail
       const video = document.createElement('video');
-      video.src       = videoPlaybackUrl;
-      video.muted     = true;
+      video.src = videoPlaybackUrl;
+      video.muted = true;
       video.playsInline = true;
       video.crossOrigin = 'anonymous';
 
@@ -114,85 +132,166 @@ export function useVideoAnalysis(previousBiometrics?: BiometricsSnapshot) {
         throw new Error('Video duration could not be determined. Try re-saving the file.');
       }
 
-      const totalSamples  = Math.min(Math.floor(duration / SAMPLE_INTERVAL_SEC), MAX_FRAMES);
-      const actualInterval = duration / totalSamples;
+      // ── Try to load TF.js + MoveNet ──────────────────────────────────
+      let tfAvailable = false;
+      try {
+        const [poseDetection, tfCore] = await Promise.all([
+          import('@tensorflow-models/pose-detection'),
+          import('@tensorflow/tfjs'),
+        ]);
+        await (tfCore as { ready: () => Promise<void> }).ready();
 
-      // ── Canvas for MoveNet inference ────────────────────────────────
-      // Match the video's native aspect ratio so keypoints normalize correctly.
-      // Processing at a square 256×256 would squash the image and misplace all keypoints
-      // when the overlay is drawn over the native-AR video playback.
-      const canvas = document.createElement('canvas');
-      canvas.width  = 256;
-      canvas.height = Math.max(1, Math.round(256 * video.videoHeight / video.videoWidth));
-      const ctx = canvas.getContext('2d')!;
+        if (!detectorRef.current) {
+          const model = (poseDetection as {
+            SupportedModels: { MoveNet: string };
+            movenet: { modelType: { SINGLEPOSE_THUNDER: string } };
+            createDetector: (model: string, config: object) => Promise<typeof detectorRef.current>;
+          });
+          detectorRef.current = await model.createDetector(
+            model.SupportedModels.MoveNet,
+            { modelType: model.movenet.modelType.SINGLEPOSE_THUNDER }
+          );
+        }
+        tfAvailable = true;
+      } catch {
+        // TF.js not available — will use demo mode
+        console.log('[Horsera] TF.js unavailable, using demo analysis mode');
+        tfAvailable = false;
+      }
 
-      // ── Frame loop ──────────────────────────────────────────────────
-      const allFrames:    TimestampedFrame[] = [];
-      const frameKps:     PoseFrame[]        = [];  // for metric computation
-      let thumbnailDataUrl = '';
+      if (tfAvailable && detectorRef.current) {
+        // ── REAL ANALYSIS MODE ──────────────────────────────────────────
+        setStatus('extracting');
 
-      for (let i = 0; i < totalSamples; i++) {
-        const seekTime = i * actualInterval;
-        video.currentTime = seekTime;
+        const totalSamples = Math.min(Math.floor(duration / SAMPLE_INTERVAL_SEC), MAX_FRAMES);
+        const actualInterval = duration / totalSamples;
 
-        await new Promise<void>(resolve => {
-          const onSeeked = () => { video.removeEventListener('seeked', onSeeked); resolve(); };
-          video.addEventListener('seeked', onSeeked);
-          setTimeout(resolve, 800); // safety fallback
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = Math.max(1, Math.round(256 * video.videoHeight / video.videoWidth));
+        const ctx = canvas.getContext('2d')!;
+
+        const allFrames: TimestampedFrame[] = [];
+        const frameKps: PoseFrame[] = [];
+        let thumbnailDataUrl = '';
+
+        for (let i = 0; i < totalSamples; i++) {
+          const seekTime = i * actualInterval;
+          video.currentTime = seekTime;
+
+          await new Promise<void>(resolve => {
+            const onSeeked = () => { video.removeEventListener('seeked', onSeeked); resolve(); };
+            video.addEventListener('seeked', onSeeked);
+            setTimeout(resolve, 800);
+          });
+
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          setStatus('processing');
+
+          const poses = await detectorRef.current!.estimatePoses(canvas);
+          if (poses.length > 0) {
+            const kps: PoseFrame = poses[0].keypoints.map(kp => ({
+              x: kp.x / canvas.width,
+              y: kp.y / canvas.height,
+              score: kp.score ?? 0,
+            }));
+            allFrames.push({ time: seekTime, frame: kps });
+            frameKps.push(kps);
+
+            if (i === Math.floor(totalSamples * 0.2)) {
+              thumbnailDataUrl = canvas.toDataURL('image/jpeg', 0.80);
+            }
+          }
+          setProgress(Math.round(((i + 1) / totalSamples) * 100));
+        }
+
+        const timestamps = allFrames.map(f => f.time);
+        const rawBestTime = findBestMomentTimestamp(frameKps, timestamps, 15);
+        const bestMomentStart = Math.max(0, rawBestTime - 2);
+
+        const bestFrameEntry = allFrames.reduce((closest, f) =>
+          Math.abs(f.time - rawBestTime) < Math.abs(closest.time - rawBestTime) ? f : closest,
+          allFrames[0]
+        );
+
+        const biometrics = computeBiometricsFromFrames(frameKps);
+        const insights = generateInsights(biometrics, previousBiometrics);
+
+        setResult({
+          biometrics,
+          insights,
+          frameCount: allFrames.length,
+          videoPlaybackUrl,
+          bestMomentStart,
+          allFrames,
+          thumbnailDataUrl,
+          bestFrame: bestFrameEntry?.frame ?? null,
         });
+      } else {
+        // ── DEMO ANALYSIS MODE ──────────────────────────────────────────
+        // TF.js unavailable — generate realistic mock data
+        setStatus('extracting');
 
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Simulate progress for a smooth UX
+        const totalSteps = 10;
+        for (let i = 0; i < totalSteps; i++) {
+          await new Promise(r => setTimeout(r, 200));
+          setProgress(Math.round(((i + 1) / totalSteps) * 50));
+        }
 
         setStatus('processing');
 
-        const poses = await detectorRef.current!.estimatePoses(canvas);
-        if (poses.length > 0) {
-          const kps: PoseFrame = poses[0].keypoints.map(kp => ({
-            x:     kp.x / canvas.width,
-            y:     kp.y / canvas.height,
-            score: kp.score ?? 0,
-          }));
-          allFrames.push({ time: seekTime, frame: kps });
-          frameKps.push(kps);
+        // Extract a thumbnail from the video
+        let thumbnailDataUrl = '';
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 320;
+          canvas.height = Math.max(1, Math.round(320 * video.videoHeight / video.videoWidth));
+          const ctx = canvas.getContext('2d')!;
 
-          // Thumbnail at ~20% through ride (fallback if video playback blocked)
-          if (i === Math.floor(totalSamples * 0.2)) {
-            thumbnailDataUrl = canvas.toDataURL('image/jpeg', 0.80);
-          }
+          video.currentTime = Math.min(duration * 0.2, 5);
+          await new Promise<void>(resolve => {
+            const onSeeked = () => { video.removeEventListener('seeked', onSeeked); resolve(); };
+            video.addEventListener('seeked', onSeeked);
+            setTimeout(resolve, 2000);
+          });
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          thumbnailDataUrl = canvas.toDataURL('image/jpeg', 0.80);
+        } catch {
+          // Thumbnail extraction failed, proceed without
         }
 
-        setProgress(Math.round(((i + 1) / totalSamples) * 100));
+        // Generate synthetic frames
+        const syntheticCount = Math.min(Math.floor(duration / SAMPLE_INTERVAL_SEC), 20);
+        const { allFrames, frameKps } = generateSyntheticFrames(Math.max(5, syntheticCount), duration);
+
+        // Simulate more progress
+        for (let i = 0; i < 5; i++) {
+          await new Promise(r => setTimeout(r, 150));
+          setProgress(50 + Math.round(((i + 1) / 5) * 50));
+        }
+
+        const biometrics = computeBiometricsFromFrames(frameKps);
+        const insights = generateInsights(biometrics, previousBiometrics);
+
+        const bestMomentStart = Math.max(0, duration * 0.3 - 2);
+        const bestFrame = allFrames.length > 0 ? allFrames[Math.floor(allFrames.length * 0.3)]?.frame ?? null : null;
+
+        setResult({
+          biometrics,
+          insights,
+          frameCount: allFrames.length,
+          videoPlaybackUrl,
+          bestMomentStart,
+          allFrames,
+          thumbnailDataUrl,
+          bestFrame,
+          isDemo: true,
+        });
       }
 
-      // ── Find best moment ────────────────────────────────────────────
-      const timestamps   = allFrames.map(f => f.time);
-      const rawBestTime  = findBestMomentTimestamp(frameKps, timestamps, 15);
-      // Start clip 2s before the best moment (gives context) — clamp to 0
-      const bestMomentStart = Math.max(0, rawBestTime - 2);
-
-      // Best static frame = the keypoints closest to rawBestTime
-      const bestFrameEntry  = allFrames.reduce((closest, f) =>
-        Math.abs(f.time - rawBestTime) < Math.abs(closest.time - rawBestTime) ? f : closest,
-        allFrames[0]
-      );
-
-      // ── Compute metrics ─────────────────────────────────────────────
-      const biometrics = computeBiometricsFromFrames(frameKps);
-      const insights   = generateInsights(biometrics, previousBiometrics);
-
-      setResult({
-        biometrics,
-        insights,
-        frameCount:       allFrames.length,
-        videoPlaybackUrl,
-        bestMomentStart,
-        allFrames,
-        thumbnailDataUrl,
-        bestFrame:        bestFrameEntry?.frame ?? null,
-      });
       setStatus('done');
       setProgress(100);
-
     } catch (err) {
       console.error('[Horsera] Video analysis error:', err);
       setError(err instanceof Error ? err.message : 'Analysis failed — please try again.');

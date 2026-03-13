@@ -1,22 +1,30 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp, Play, Shield } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Shield } from "lucide-react";
 import {
   type SeatAnalysisData, type SeatMetric, type SeatView, type InsightStatus, type InsightConfidence,
   statusConfig, confidenceConfig,
 } from "@/lib/videoAnalysis";
 
-// ─── Color System ────────────────────────────────────────────────────────────
+// ─── Horsera Colors ──────────────────────────────────────────────────────────
 
-const STATUS_COLORS: Record<InsightStatus, { fill: string; stroke: string; label: string }> = {
-  good: { fill: "hsl(152, 38%, 45%)", stroke: "hsl(152, 38%, 55%)", label: "hsl(152, 38%, 35%)" },
-  moderate: { fill: "hsl(38, 70%, 52%)", stroke: "hsl(38, 70%, 62%)", label: "hsl(38, 70%, 42%)" },
-  "needs-attention": { fill: "hsl(0, 60%, 52%)", stroke: "hsl(0, 60%, 62%)", label: "hsl(0, 60%, 42%)" },
-};
+const COLORS = {
+  parchment: '#FAF7F3',
+  cognac: '#8C5A3C',
+  champagne: '#C9A96E',
+  green: '#7D9B76',
+  attention: '#C4714A',
+  dark: '#2D2318',
+  darkBody: '#3A3028',
+  bone: '#F5EFE8',
+  muted: '#B5A898',
+  cadence: '#6B7FA3',
+} as const;
 
-function desaturate(color: string, factor: number): string {
-  // Reduce saturation for low confidence
-  return color.replace(/(\d+)%/, (_, s) => `${Math.round(Number(s) * factor)}%`);
+function statusColor(status: InsightStatus): string {
+  if (status === 'good') return COLORS.green;
+  if (status === 'moderate') return COLORS.champagne;
+  return COLORS.attention;
 }
 
 function metricToStatus(metric: SeatMetric): InsightStatus {
@@ -26,27 +34,30 @@ function metricToStatus(metric: SeatMetric): InsightStatus {
   return "needs-attention";
 }
 
-function getSegmentColor(status: InsightStatus, confidence: InsightConfidence): string {
-  const base = STATUS_COLORS[status].fill;
-  return confidence === "low" ? desaturate(base, 0.5) : base;
+function overallScore(metrics: SeatAnalysisData["metrics"]): number {
+  // Compute 0-100 score based on how close all metrics are to ideal
+  const items = [metrics.pelvicBalance, metrics.hipDrop, metrics.upperBodyLean, metrics.seatStability];
+  let total = 0;
+  for (const m of items) {
+    const dist = Math.abs(m.valueDegrees) - m.idealMax;
+    if (dist <= 0) total += 100;
+    else if (dist <= 3) total += 70;
+    else if (dist <= 6) total += 40;
+    else total += 15;
+  }
+  return Math.round(total / items.length);
 }
 
-function getSegmentStroke(status: InsightStatus, confidence: InsightConfidence): string {
-  const base = STATUS_COLORS[status].stroke;
-  return confidence === "low" ? desaturate(base, 0.5) : base;
-}
+// ─── Arc Gauge Component ─────────────────────────────────────────────────────
 
-// ─── Arc Gauge SVG ───────────────────────────────────────────────────────────
-
-const ArcGauge = ({ metric, confidence, size = 60 }: { metric: SeatMetric; confidence: InsightConfidence; size?: number }) => {
-  const r = (size - 10) / 2;
+const ArcGauge = ({ metric, size = 52 }: { metric: SeatMetric; size?: number }) => {
+  const r = (size - 8) / 2;
   const cx = size / 2;
-  const cy = size / 2 + 6;
+  const cy = size / 2 + 4;
   const startAngle = -150;
   const endAngle = -30;
   const totalArc = endAngle - startAngle;
   const maxRange = 20;
-
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const arcPoint = (angle: number) => ({
     x: cx + r * Math.cos(toRad(angle)),
@@ -58,7 +69,7 @@ const ArcGauge = ({ metric, confidence, size = 60 }: { metric: SeatMetric; confi
   const bgEnd = arcPoint(endAngle);
   const bgPath = `M ${bgStart.x} ${bgStart.y} A ${r} ${r} 0 0 1 ${bgEnd.x} ${bgEnd.y}`;
 
-  // Ideal range band
+  // Ideal range (green zone)
   const idealStartFrac = Math.max(0, metric.idealMin / maxRange);
   const idealEndFrac = Math.min(1, metric.idealMax / maxRange);
   const idealStartAngle = startAngle + idealStartFrac * totalArc;
@@ -67,195 +78,528 @@ const ArcGauge = ({ metric, confidence, size = 60 }: { metric: SeatMetric; confi
   const idealEnd = arcPoint(idealEndAngle);
   const idealPath = `M ${idealStart.x} ${idealStart.y} A ${r} ${r} 0 0 1 ${idealEnd.x} ${idealEnd.y}`;
 
-  // Needle position
+  // Value marker position
   const valueFrac = Math.min(1, Math.max(0, Math.abs(metric.valueDegrees) / maxRange));
   const needleAngle = startAngle + valueFrac * totalArc;
-  const needleLength = r - 8;
-  const needleEnd = {
-    x: cx + needleLength * Math.cos(toRad(needleAngle)),
-    y: cy + needleLength * Math.sin(toRad(needleAngle)),
-  };
-
-  // Marker dot on the arc
   const markerPos = arcPoint(needleAngle);
 
   const status = metricToStatus(metric);
-  const color = getSegmentColor(status, confidence);
-  const strokeColor = getSegmentStroke(status, confidence);
+  const color = statusColor(status);
 
   return (
-    <svg width={size} height={size * 0.7} viewBox={`0 0 ${size} ${size * 0.7}`}>
+    <svg width={size} height={size * 0.65} viewBox={`0 0 ${size} ${size * 0.65}`}>
       {/* Background arc */}
-      <path d={bgPath} fill="none" stroke="hsl(35, 15%, 85%)" strokeWidth={6} strokeLinecap="round" />
-      {/* Ideal range (green band) */}
-      <path d={idealPath} fill="none" stroke="hsl(152, 35%, 75%)" strokeWidth={6} strokeLinecap="round" opacity={0.7} />
-      {/* Needle line */}
-      <line x1={cx} y1={cy} x2={needleEnd.x} y2={needleEnd.y} stroke={color} strokeWidth={2} strokeLinecap="round" opacity={0.6} />
-      {/* Marker dot on arc */}
-      <circle cx={markerPos.x} cy={markerPos.y} r={5} fill={color} stroke="hsl(40, 33%, 97%)" strokeWidth={2} />
-      {/* Center dot */}
-      <circle cx={cx} cy={cy} r={2.5} fill="hsl(35, 15%, 70%)" />
+      <path d={bgPath} fill="none" stroke="#EDE7DF" strokeWidth={5} strokeLinecap="round" />
+      {/* Ideal range band */}
+      <path d={idealPath} fill="none" stroke={`${COLORS.green}60`} strokeWidth={5} strokeLinecap="round" />
+      {/* Colored arc up to value */}
+      {(() => {
+        const valStart = arcPoint(startAngle);
+        const valEnd = arcPoint(needleAngle);
+        const largeArc = (needleAngle - startAngle) > 180 ? 1 : 0;
+        const valPath = `M ${valStart.x} ${valStart.y} A ${r} ${r} 0 ${largeArc} 1 ${valEnd.x} ${valEnd.y}`;
+        return <path d={valPath} fill="none" stroke={color} strokeWidth={5} strokeLinecap="round" opacity={0.8} />;
+      })()}
+      {/* Marker dot */}
+      <circle cx={markerPos.x} cy={markerPos.y} r={4} fill="white" stroke={color} strokeWidth={2} />
     </svg>
   );
 };
 
-// ─── Rider Silhouette SVG with Color-Coded Segments ──────────────────────────
+// ─── Mannequin SVG ───────────────────────────────────────────────────────────
 
-const RiderSilhouette = ({
+interface JointPositions {
+  [key: string]: { x: number; y: number };
+}
+
+function getJoints(view: SeatView): JointPositions {
+  if (view === "back") return {
+    head: { x: 100, y: 28 },
+    neck: { x: 100, y: 52 },
+    shoulderL: { x: 65, y: 68 },
+    shoulderR: { x: 135, y: 68 },
+    elbowL: { x: 52, y: 108 },
+    elbowR: { x: 148, y: 108 },
+    handL: { x: 60, y: 140 },
+    handR: { x: 140, y: 140 },
+    hipL: { x: 78, y: 152 },
+    hipR: { x: 122, y: 152 },
+    pelvis: { x: 100, y: 152 },
+    kneeL: { x: 72, y: 205 },
+    kneeR: { x: 128, y: 205 },
+    ankleL: { x: 70, y: 258 },
+    ankleR: { x: 130, y: 258 },
+  };
+  if (view === "left") return {
+    head: { x: 108, y: 24 },
+    neck: { x: 102, y: 50 },
+    shoulderL: { x: 96, y: 68 },
+    shoulderR: { x: 96, y: 68 },
+    elbowL: { x: 78, y: 108 },
+    elbowR: { x: 78, y: 108 },
+    handL: { x: 84, y: 140 },
+    handR: { x: 84, y: 140 },
+    hipL: { x: 108, y: 152 },
+    hipR: { x: 108, y: 152 },
+    pelvis: { x: 108, y: 152 },
+    kneeL: { x: 82, y: 205 },
+    kneeR: { x: 82, y: 205 },
+    ankleL: { x: 92, y: 258 },
+    ankleR: { x: 92, y: 258 },
+  };
+  // right view
+  return {
+    head: { x: 92, y: 24 },
+    neck: { x: 98, y: 50 },
+    shoulderL: { x: 104, y: 68 },
+    shoulderR: { x: 104, y: 68 },
+    elbowL: { x: 122, y: 108 },
+    elbowR: { x: 122, y: 108 },
+    handL: { x: 116, y: 140 },
+    handR: { x: 116, y: 140 },
+    hipL: { x: 92, y: 152 },
+    hipR: { x: 92, y: 152 },
+    pelvis: { x: 92, y: 152 },
+    kneeL: { x: 118, y: 205 },
+    kneeR: { x: 118, y: 205 },
+    ankleL: { x: 108, y: 258 },
+    ankleR: { x: 108, y: 258 },
+  };
+}
+
+const RiderMannequin = ({
   view,
   metrics,
-  confidence,
 }: {
   view: SeatView;
   metrics: SeatAnalysisData["metrics"];
-  confidence: InsightConfidence;
 }) => {
+  const j = getJoints(view);
   const w = 200;
-  const h = 320;
+  const h = 290;
+  const isBack = view === "back";
 
-  const joints = view === "back"
-    ? {
-        head: { x: 100, y: 30 }, neck: { x: 100, y: 50 },
-        shoulderL: { x: 70, y: 65 }, shoulderR: { x: 130, y: 65 },
-        elbowL: { x: 58, y: 100 }, elbowR: { x: 142, y: 100 },
-        handL: { x: 65, y: 130 }, handR: { x: 135, y: 130 },
-        hipL: { x: 80, y: 145 }, hipR: { x: 120, y: 145 },
-        pelvis: { x: 100, y: 145 },
-        kneeL: { x: 72, y: 195 }, kneeR: { x: 128, y: 195 },
-        ankleL: { x: 70, y: 245 }, ankleR: { x: 130, y: 245 },
-      }
-    : view === "left"
-    ? {
-        head: { x: 105, y: 25 }, neck: { x: 100, y: 48 },
-        shoulderL: { x: 95, y: 65 }, shoulderR: { x: 95, y: 65 },
-        elbowL: { x: 80, y: 105 }, elbowR: { x: 80, y: 105 },
-        handL: { x: 85, y: 135 }, handR: { x: 85, y: 135 },
-        hipL: { x: 105, y: 145 }, hipR: { x: 105, y: 145 },
-        pelvis: { x: 105, y: 145 },
-        kneeL: { x: 80, y: 195 }, kneeR: { x: 80, y: 195 },
-        ankleL: { x: 90, y: 250 }, ankleR: { x: 90, y: 250 },
-      }
-    : {
-        head: { x: 95, y: 25 }, neck: { x: 100, y: 48 },
-        shoulderL: { x: 105, y: 65 }, shoulderR: { x: 105, y: 65 },
-        elbowL: { x: 120, y: 105 }, elbowR: { x: 120, y: 105 },
-        handL: { x: 115, y: 135 }, handR: { x: 115, y: 135 },
-        hipL: { x: 95, y: 145 }, hipR: { x: 95, y: 145 },
-        pelvis: { x: 95, y: 145 },
-        kneeL: { x: 120, y: 195 }, kneeR: { x: 120, y: 195 },
-        ankleL: { x: 110, y: 250 }, ankleR: { x: 110, y: 250 },
-      };
+  // Segment colors mapped to metrics
+  const torsoColor = statusColor(metricToStatus(metrics.upperBodyLean));
+  const hipColor = statusColor(metricToStatus(metrics.hipDrop));
+  const pelvisColor = statusColor(metricToStatus(metrics.pelvicBalance));
+  const bodyColor = COLORS.darkBody;
+  const jointDotColor = "#F5EFE8";
 
-  // Color segments by their related metric
-  const pelvisColor = getSegmentColor(metricToStatus(metrics.pelvicBalance), confidence);
-  const hipColor = getSegmentColor(metricToStatus(metrics.hipDrop), confidence);
-  const torsoColor = getSegmentColor(metricToStatus(metrics.upperBodyLean), confidence);
-  const neutralColor = "hsl(35, 20%, 70%)";
-
-  // Segment drawing helper
-  const seg = (x1: number, y1: number, x2: number, y2: number, color: string, width = 3) => (
-    <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={width} strokeLinecap="round" />
+  // Thick body segment helper
+  const bodySegment = (
+    x1: number, y1: number, x2: number, y2: number,
+    color: string, width: number = 8
+  ) => (
+    <line x1={x1} y1={y1} x2={x2} y2={y2}
+      stroke={color} strokeWidth={width} strokeLinecap="round" />
   );
 
-  // Vertical balance line
-  const balanceLineColor = metricToStatus(metrics.upperBodyLean) === "good"
-    ? "hsl(152, 28%, 75%)"
-    : metricToStatus(metrics.upperBodyLean) === "moderate"
-    ? "hsl(38, 50%, 70%)"
-    : "hsl(0, 40%, 70%)";
+  // Joint dot helper
+  const dot = (x: number, y: number, r: number = 5) => (
+    <circle cx={x} cy={y} r={r} fill={jointDotColor} stroke="#D4CEC5" strokeWidth={1.5} />
+  );
 
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="mx-auto">
-      {/* Vertical balance line */}
-      <line
-        x1={joints.head.x} y1={joints.head.y}
-        x2={joints.pelvis.x} y2={joints.pelvis.y}
-        stroke={balanceLineColor} strokeWidth={1} strokeDasharray="4 3" opacity={0.5}
-      />
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', margin: '0 auto' }}>
+      {/* Balance reference line */}
+      <line x1={j.head.x} y1={j.head.y} x2={j.pelvis.x} y2={j.pelvis.y + 10}
+        stroke={`${torsoColor}30`} strokeWidth={1} strokeDasharray="4 3" />
 
-      {/* Torso — colored by upper body lean */}
-      {seg(joints.neck.x, joints.neck.y, joints.pelvis.x, joints.pelvis.y, torsoColor, 4)}
+      {/* Body segments — thick dark strokes for mannequin look */}
+      {/* Torso */}
+      {bodySegment(j.neck.x, j.neck.y, j.pelvis.x, j.pelvis.y, bodyColor, 12)}
+      {/* Colored overlay on torso */}
+      {bodySegment(j.neck.x, j.neck.y, j.pelvis.x, j.pelvis.y, `${torsoColor}40`, 12)}
 
-      {/* Shoulders — neutral */}
-      {seg(joints.shoulderL.x, joints.shoulderL.y, joints.shoulderR.x, joints.shoulderR.y, neutralColor)}
+      {/* Shoulders */}
+      {bodySegment(j.shoulderL.x, j.shoulderL.y, j.shoulderR.x, j.shoulderR.y, bodyColor, 8)}
 
-      {/* Arms — neutral */}
-      {seg(joints.shoulderL.x, joints.shoulderL.y, joints.elbowL.x, joints.elbowL.y, neutralColor, 2.5)}
-      {seg(joints.elbowL.x, joints.elbowL.y, joints.handL.x, joints.handL.y, neutralColor, 2.5)}
-      {view === "back" && (
-        <>
-          {seg(joints.shoulderR.x, joints.shoulderR.y, joints.elbowR.x, joints.elbowR.y, neutralColor, 2.5)}
-          {seg(joints.elbowR.x, joints.elbowR.y, joints.handR.x, joints.handR.y, neutralColor, 2.5)}
-        </>
-      )}
+      {/* Upper arms */}
+      {bodySegment(j.shoulderL.x, j.shoulderL.y, j.elbowL.x, j.elbowL.y, bodyColor, 7)}
+      {isBack && bodySegment(j.shoulderR.x, j.shoulderR.y, j.elbowR.x, j.elbowR.y, bodyColor, 7)}
 
-      {/* Hips — colored by hip drop */}
-      {seg(joints.hipL.x, joints.hipL.y, joints.hipR.x, joints.hipR.y, hipColor, 3.5)}
+      {/* Forearms */}
+      {bodySegment(j.elbowL.x, j.elbowL.y, j.handL.x, j.handL.y, bodyColor, 6)}
+      {isBack && bodySegment(j.elbowR.x, j.elbowR.y, j.handR.x, j.handR.y, bodyColor, 6)}
 
-      {/* Upper legs — colored by hip metric */}
-      {seg(joints.hipL.x, joints.hipL.y, joints.kneeL.x, joints.kneeL.y, hipColor, 2.5)}
-      {view === "back" && seg(joints.hipR.x, joints.hipR.y, joints.kneeR.x, joints.kneeR.y, hipColor, 2.5)}
+      {/* Hips bar */}
+      {bodySegment(j.hipL.x, j.hipL.y, j.hipR.x, j.hipR.y, bodyColor, 10)}
+      {bodySegment(j.hipL.x, j.hipL.y, j.hipR.x, j.hipR.y, `${hipColor}40`, 10)}
 
-      {/* Lower legs — neutral */}
-      {seg(joints.kneeL.x, joints.kneeL.y, joints.ankleL.x, joints.ankleL.y, neutralColor, 2.5)}
-      {view === "back" && seg(joints.kneeR.x, joints.kneeR.y, joints.ankleR.x, joints.ankleR.y, neutralColor, 2.5)}
+      {/* Pelvis highlight */}
+      <ellipse cx={j.pelvis.x} cy={j.pelvis.y}
+        rx={isBack ? 26 : 18} ry={10}
+        fill={`${pelvisColor}20`} stroke={`${pelvisColor}50`} strokeWidth={1.5} />
 
-      {/* Pelvis highlight zone — colored by pelvic balance */}
-      <ellipse
-        cx={joints.pelvis.x} cy={joints.pelvis.y}
-        rx={view === "back" ? 24 : 16} ry={12}
-        fill={pelvisColor} opacity={0.25}
-        stroke={pelvisColor} strokeWidth={2}
-      />
+      {/* Upper legs */}
+      {bodySegment(j.hipL.x, j.hipL.y, j.kneeL.x, j.kneeL.y, bodyColor, 8)}
+      {isBack && bodySegment(j.hipR.x, j.hipR.y, j.kneeR.x, j.kneeR.y, bodyColor, 8)}
+
+      {/* Lower legs */}
+      {bodySegment(j.kneeL.x, j.kneeL.y, j.ankleL.x, j.ankleL.y, bodyColor, 7)}
+      {isBack && bodySegment(j.kneeR.x, j.kneeR.y, j.ankleR.x, j.ankleR.y, bodyColor, 7)}
+
+      {/* Feet */}
+      {bodySegment(j.ankleL.x, j.ankleL.y, j.ankleL.x + (view === 'right' ? -8 : 8), j.ankleL.y + 10, bodyColor, 6)}
+      {isBack && bodySegment(j.ankleR.x, j.ankleR.y, j.ankleR.x - 8, j.ankleR.y + 10, bodyColor, 6)}
+
+      {/* Skeleton overlay lines (colored by metric region) */}
+      <line x1={j.neck.x} y1={j.neck.y} x2={j.pelvis.x} y2={j.pelvis.y}
+        stroke={torsoColor} strokeWidth={2} strokeLinecap="round" opacity={0.8} />
+      <line x1={j.hipL.x} y1={j.hipL.y} x2={j.hipR.x} y2={j.hipR.y}
+        stroke={hipColor} strokeWidth={2} strokeLinecap="round" opacity={0.8} />
 
       {/* Joint dots */}
-      {Object.values(joints).map((j, i) => (
-        <circle key={i} cx={j.x} cy={j.y} r={4} fill="hsl(40, 33%, 97%)" stroke="hsl(35, 20%, 65%)" strokeWidth={1.5} />
-      ))}
+      {dot(j.shoulderL.x, j.shoulderL.y)}
+      {isBack && dot(j.shoulderR.x, j.shoulderR.y)}
+      {dot(j.elbowL.x, j.elbowL.y)}
+      {isBack && dot(j.elbowR.x, j.elbowR.y)}
+      {dot(j.handL.x, j.handL.y, 4)}
+      {isBack && dot(j.handR.x, j.handR.y, 4)}
+      {dot(j.hipL.x, j.hipL.y)}
+      {isBack && dot(j.hipR.x, j.hipR.y)}
+      {dot(j.kneeL.x, j.kneeL.y)}
+      {isBack && dot(j.kneeR.x, j.kneeR.y)}
+      {dot(j.ankleL.x, j.ankleL.y, 4)}
+      {isBack && dot(j.ankleR.x, j.ankleR.y, 4)}
 
-      {/* Head */}
-      <circle cx={joints.head.x} cy={joints.head.y} r={14} fill="hsl(25, 15%, 30%)" stroke="hsl(35, 20%, 65%)" strokeWidth={1.5} />
+      {/* Head — larger dark circle */}
+      <circle cx={j.head.x} cy={j.head.y} r={16}
+        fill={COLORS.dark} stroke="#D4CEC5" strokeWidth={1.5} />
+      {/* Neck */}
+      {bodySegment(j.head.x, j.head.y + 14, j.neck.x, j.neck.y, bodyColor, 8)}
     </svg>
   );
 };
 
 // ─── Metric Card ─────────────────────────────────────────────────────────────
 
-const MetricCard = ({ metric, confidence, side }: { metric: SeatMetric; confidence: InsightConfidence; side: "left" | "right" }) => {
+const MetricCard = ({ metric, side }: { metric: SeatMetric; side: "left" | "right" }) => {
   const status = metricToStatus(metric);
-  const colors = STATUS_COLORS[status];
-  const labelColor = confidence === "low" ? desaturate(colors.label, 0.5) : colors.label;
+  const color = statusColor(status);
 
   return (
-    <div className={`flex items-center gap-2 ${side === "right" ? "flex-row-reverse text-right" : ""}`}>
-      <ArcGauge metric={metric} confidence={confidence} size={56} />
-      <div>
-        <p className="text-[10px] font-semibold text-foreground">{metric.label}</p>
-        <p className="text-[10px] text-muted-foreground">
-          You: <span className="font-semibold" style={{ color: labelColor }}>{metric.valueDegrees}°</span>
-        </p>
-        <p className="text-[9px] text-muted-foreground">
-          Ideal: {metric.idealMin}–{metric.idealMax}°
-        </p>
+    <div style={{
+      background: 'white',
+      borderRadius: '12px',
+      padding: '8px 10px',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      textAlign: side === 'right' ? 'right' : 'left',
+      minWidth: '80px',
+    }}>
+      <div style={{
+        fontSize: '11px',
+        fontWeight: 600,
+        color: COLORS.dark,
+        fontFamily: "'DM Sans', sans-serif",
+        marginBottom: '2px',
+      }}>{metric.label}</div>
+      <div style={{
+        fontSize: '11px',
+        color: COLORS.muted,
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+        You: <span style={{ color, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}>{metric.valueDegrees}°</span>
+      </div>
+      <div style={{
+        fontSize: '10px',
+        color: '#C8BFAF',
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+        Ideal: {metric.idealMin}–{metric.idealMax}°
       </div>
     </div>
   );
 };
 
-// ─── Overall Status Computation ──────────────────────────────────────────────
+// ─── Gradient Score Bar ──────────────────────────────────────────────────────
 
-function computeOverallStatus(metrics: SeatAnalysisData["metrics"]): InsightStatus {
-  // Based on the MOST significant deviation, not average
-  const statuses = [
-    metricToStatus(metrics.pelvicBalance),
-    metricToStatus(metrics.hipDrop),
-    metricToStatus(metrics.upperBodyLean),
-    metricToStatus(metrics.seatStability),
+const ScoreBar = ({ score }: { score: number }) => {
+  const pct = Math.max(5, Math.min(95, score));
+
+  return (
+    <div style={{ padding: '16px 0 8px' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: '8px',
+      }}>
+        <span style={{
+          background: 'white',
+          borderRadius: '20px',
+          padding: '4px 14px',
+          fontSize: '12px',
+          fontWeight: 600,
+          color: COLORS.dark,
+          fontFamily: "'DM Sans', sans-serif",
+          boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+        }}>You</span>
+      </div>
+      <div style={{ position: 'relative', height: '12px', borderRadius: '6px', overflow: 'visible' }}>
+        <div style={{
+          height: '12px',
+          borderRadius: '6px',
+          background: 'linear-gradient(90deg, #C4714A 0%, #E8A84C 30%, #C9A96E 50%, #A5B87A 70%, #7D9B76 100%)',
+        }} />
+        {/* "You" marker dot */}
+        <div style={{
+          position: 'absolute',
+          top: '-2px',
+          left: `${pct}%`,
+          transform: 'translateX(-50%)',
+          width: '16px',
+          height: '16px',
+          borderRadius: '50%',
+          background: '#3A3028',
+          border: '2.5px solid white',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+        }} />
+        {/* Score tooltip */}
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          left: `${pct}%`,
+          transform: 'translateX(-50%)',
+          background: 'white',
+          borderRadius: '8px',
+          padding: '2px 8px',
+          fontSize: '11px',
+          fontWeight: 600,
+          color: COLORS.dark,
+          fontFamily: "'DM Mono', monospace",
+          boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+          whiteSpace: 'nowrap',
+        }}>
+          {score}%
+        </div>
+      </div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginTop: '20px',
+        fontSize: '10px',
+        color: COLORS.muted,
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+        <span>Needs work</span>
+        <span>Ideal Position</span>
+      </div>
+    </div>
+  );
+};
+
+// ─── Summary Insight Card ────────────────────────────────────────────────────
+
+const InsightCard = ({ title, description, status }: { title: string; description: string; status: InsightStatus }) => {
+  const color = statusColor(status);
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div style={{
+      background: 'white',
+      borderRadius: '14px',
+      padding: '14px 16px',
+      marginBottom: '8px',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+        <div style={{
+          width: '20px', height: '20px', borderRadius: '50%',
+          border: `2px solid ${color}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, marginTop: '1px',
+        }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{
+            fontSize: '14px',
+            fontWeight: 600,
+            color: COLORS.dark,
+            fontFamily: "'DM Sans', sans-serif",
+          }}>{title}</div>
+          <div style={{
+            fontSize: '13px',
+            color: '#6B6055',
+            fontFamily: "'DM Sans', sans-serif",
+            lineHeight: 1.5,
+            marginTop: '4px',
+          }}>{description}</div>
+        </div>
+      </div>
+
+      {/* Exercise sections */}
+      <div style={{ marginTop: '12px', borderTop: '1px solid #F0EBE4', paddingTop: '10px' }}>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+          }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: COLORS.dark, fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+            <span style={{ fontSize: '14px' }}>🏃</span> Exercises
+          </span>
+          {expanded ? <ChevronUp size={14} color={COLORS.muted} /> : <ChevronRight size={14} color={COLORS.muted} />}
+        </button>
+        {expanded && (
+          <div style={{ paddingTop: '6px', paddingLeft: '24px' }}>
+            <div style={{
+              fontSize: '12px', color: '#8A7E72', fontFamily: "'DM Sans', sans-serif",
+              padding: '6px 0', borderBottom: '1px solid #F5F0EA',
+            }}>Shoulder and Back Stretch</div>
+            <div style={{
+              fontSize: '12px', color: '#8A7E72', fontFamily: "'DM Sans', sans-serif",
+              padding: '6px 0', borderBottom: '1px solid #F5F0EA',
+            }}>Cat-Cow</div>
+            <div style={{
+              fontSize: '12px', color: '#8A7E72', fontFamily: "'DM Sans', sans-serif",
+              padding: '6px 0',
+            }}>Pelvic Tilt Hold</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── Part by Part Carousel ───────────────────────────────────────────────────
+
+const PartByPartCarousel = ({ metrics }: { metrics: SeatAnalysisData["metrics"] }) => {
+  const parts = [
+    { ...metrics.pelvicBalance, key: 'pelvic' },
+    { ...metrics.upperBodyLean, key: 'upper' },
+    { ...metrics.hipDrop, key: 'hip' },
+    { ...metrics.seatStability, key: 'seat' },
   ];
-  if (statuses.includes("needs-attention")) return "needs-attention";
-  if (statuses.includes("moderate")) return "moderate";
-  return "good";
-}
+  const [current, setCurrent] = useState(0);
+
+  const part = parts[current];
+  const partStatus = metricToStatus(part);
+  const partScore = partStatus === 'good' ? 80 : partStatus === 'moderate' ? 55 : 25;
+
+  return (
+    <div style={{
+      background: '#F5F0EA',
+      borderRadius: '16px',
+      padding: '16px',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '6px',
+        marginBottom: '12px',
+      }}>
+        <span style={{ fontSize: '14px' }}>📊</span>
+        <span style={{
+          fontSize: '13px', fontWeight: 600, color: COLORS.dark,
+          fontFamily: "'DM Sans', sans-serif",
+        }}>Part by Part</span>
+      </div>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: '12px',
+      }}>
+        <button onClick={() => setCurrent(Math.max(0, current - 1))}
+          style={{
+            width: 32, height: 32, borderRadius: '50%', background: 'white',
+            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            opacity: current === 0 ? 0.4 : 1,
+          }}
+          disabled={current === 0}
+        >
+          <ChevronLeft size={16} color={COLORS.dark} />
+        </button>
+
+        <span style={{
+          fontSize: '18px', fontWeight: 700, color: COLORS.dark,
+          fontFamily: "'Playfair Display', serif",
+        }}>{part.label}</span>
+
+        <button onClick={() => setCurrent(Math.min(parts.length - 1, current + 1))}
+          style={{
+            width: 32, height: 32, borderRadius: '50%', background: 'white',
+            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            opacity: current === parts.length - 1 ? 0.4 : 1,
+          }}
+          disabled={current === parts.length - 1}
+        >
+          <ChevronRight size={16} color={COLORS.dark} />
+        </button>
+      </div>
+
+      {/* Mini info */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', marginBottom: '8px',
+        fontSize: '11px', color: COLORS.muted, fontFamily: "'DM Sans', sans-serif",
+      }}>
+        <span>Ideal: {part.idealMin}–{part.idealMax}°</span>
+      </div>
+
+      {/* Score bar */}
+      <div style={{ position: 'relative', height: '10px', borderRadius: '5px', overflow: 'visible' }}>
+        <div style={{
+          height: '10px',
+          borderRadius: '5px',
+          background: 'linear-gradient(90deg, #C4714A 0%, #E8A84C 30%, #C9A96E 50%, #A5B87A 70%, #7D9B76 100%)',
+        }} />
+        {/* Ideal range marker */}
+        <div style={{
+          position: 'absolute',
+          top: '-1px',
+          left: `${Math.min(95, (part.idealMax / 20) * 100)}%`,
+          width: '2px',
+          height: '12px',
+          background: '#555',
+          opacity: 0.4,
+        }} />
+        {/* Value marker */}
+        <div style={{
+          position: 'absolute',
+          top: '-3px',
+          left: `${Math.min(95, Math.max(5, (Math.abs(part.valueDegrees) / 20) * 100))}%`,
+          transform: 'translateX(-50%)',
+          width: '16px', height: '16px', borderRadius: '50%',
+          background: '#3A3028',
+          border: '2.5px solid white',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+        }} />
+      </div>
+
+      {/* Value label */}
+      <div style={{
+        textAlign: 'center', marginTop: '12px',
+        fontSize: '12px', fontFamily: "'DM Sans', sans-serif",
+      }}>
+        <span style={{ color: COLORS.muted }}>You: </span>
+        <span style={{
+          fontWeight: 600,
+          color: statusColor(partStatus),
+          fontFamily: "'DM Mono', monospace",
+        }}>{part.valueDegrees}°</span>
+      </div>
+
+      {/* Pagination dots */}
+      <div style={{
+        display: 'flex', justifyContent: 'center', gap: '4px', marginTop: '10px',
+      }}>
+        {parts.map((_, i) => (
+          <div key={i} style={{
+            width: i === current ? 8 : 5,
+            height: 5,
+            borderRadius: '3px',
+            background: i === current ? COLORS.dark : '#D4CEC5',
+            transition: 'all 0.2s ease',
+            cursor: 'pointer',
+          }} onClick={() => setCurrent(i)} />
+        ))}
+      </div>
+    </div>
+  );
+};
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
@@ -272,64 +616,53 @@ const SeatPositionAnalysis = ({
 }: SeatPositionAnalysisProps) => {
   const [expanded, setExpanded] = useState(false);
   const [view, setView] = useState<SeatView>("left");
-  const [selectedFrameIdx, setSelectedFrameIdx] = useState(0);
 
-  // Compute overall status from most significant deviation
-  const computedStatus = computeOverallStatus(seatAnalysis.metrics);
-  const stConfig = statusConfig[computedStatus] || statusConfig["moderate"];
-  const confConfig = confidenceConfig[seatAnalysis.confidence] || confidenceConfig["low"];
-  const overallColors = STATUS_COLORS[computedStatus];
-
-  // Get evidence frames
-  const evidenceFrames = seatAnalysis.evidenceFrameIndices
-    .filter((idx) => idx < extractedFrames.length)
-    .slice(0, 3);
-
-  const thumbnailFrame = evidenceFrames.length > 0 ? extractedFrames[evidenceFrames[0]] : extractedFrames[0];
+  const computedOverallScore = overallScore(seatAnalysis.metrics);
+  const computedStatus = computedOverallScore >= 70 ? 'good' : computedOverallScore >= 45 ? 'moderate' : 'needs-attention';
+  const stConfig = statusConfig[computedStatus as InsightStatus] || statusConfig["moderate"];
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       {/* Collapsed Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full text-left glass-card p-3.5 active:scale-[0.99] transition-transform"
+        className="w-full text-left"
+        style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '14px 16px',
+          border: '1px solid #EDE7DF',
+          cursor: 'pointer',
+          display: 'block',
+          width: '100%',
+        }}
       >
-        <div className="flex items-start gap-3">
-          {/* Thumbnail with status border */}
-          {thumbnailFrame && !expanded && (
-            <div
-              className="shrink-0 w-14 h-14 rounded-xl overflow-hidden border-2"
-              style={{ borderColor: overallColors.stroke }}
-            >
-              <img src={thumbnailFrame} alt="Seat frame" className="w-full h-full object-cover" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px',
+            }}>
+              <span style={{ fontSize: '14px' }}>🪑</span>
+              <span style={{
+                fontSize: '13px', fontWeight: 600, color: COLORS.dark,
+                fontFamily: "'DM Sans', sans-serif",
+              }}>Seat Position Analysis</span>
             </div>
-          )}
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-sm">🪑</span>
-              <span className="text-xs font-semibold text-foreground">Seat Position</span>
-            </div>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span
-                className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full"
-                style={{
-                  backgroundColor: `${overallColors.fill}15`,
-                  color: overallColors.label,
-                }}
-              >
-                {stConfig.label}
-              </span>
-              <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground flex items-center gap-1">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <span key={i} className={`w-1 h-1 rounded-full ${i < confConfig.dots ? "bg-foreground" : "bg-border"}`} />
-                ))}
-                <span className="ml-0.5">{confConfig.label}</span>
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{
+                fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const,
+                padding: '2px 8px', borderRadius: '10px',
+                background: `${statusColor(computedStatus as InsightStatus)}15`,
+                color: statusColor(computedStatus as InsightStatus),
+                fontFamily: "'DM Sans', sans-serif",
+              }}>{stConfig.label}</span>
+              <span style={{
+                fontSize: '10px', color: COLORS.muted,
+                fontFamily: "'DM Mono', monospace",
+              }}>{computedOverallScore}%</span>
             </div>
           </div>
-
-          {expanded ? <ChevronUp size={14} className="text-muted-foreground shrink-0 mt-1" /> : <ChevronDown size={14} className="text-muted-foreground shrink-0 mt-1" />}
+          {expanded ? <ChevronUp size={16} color={COLORS.muted} /> : <ChevronDown size={16} color={COLORS.muted} />}
         </div>
       </button>
 
@@ -340,127 +673,221 @@ const SeatPositionAnalysis = ({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
+            style={{ overflow: 'hidden' }}
           >
-            <div className="glass-card mt-1 p-4 space-y-5">
+            <div style={{
+              background: '#F5F0EA',
+              borderRadius: '0 0 16px 16px',
+              marginTop: '-8px',
+              paddingTop: '16px',
+              padding: '16px',
+            }}>
               {/* View Switcher */}
-              <div className="flex rounded-xl bg-muted p-1 gap-1">
+              <div style={{
+                display: 'flex',
+                borderRadius: '14px',
+                background: '#EDE7DF',
+                padding: '3px',
+                gap: '2px',
+                marginBottom: '16px',
+              }}>
                 {(["left", "back", "right"] as SeatView[]).map((v) => (
                   <button
                     key={v}
                     onClick={() => setView(v)}
-                    className={`flex-1 rounded-lg py-2 text-xs font-medium capitalize transition-colors ${
-                      view === v ? "bg-foreground text-background shadow-sm" : "text-muted-foreground"
-                    }`}
+                    style={{
+                      flex: 1,
+                      borderRadius: '11px',
+                      padding: '8px 0',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      fontFamily: "'DM Sans', sans-serif",
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: view === v ? COLORS.dark : 'transparent',
+                      color: view === v ? '#FAF7F3' : '#8A7E72',
+                      transition: 'all 0.2s ease',
+                    }}
                   >
                     {v === "left" ? "Left" : v === "back" ? "Back" : "Right"}
                   </button>
                 ))}
               </div>
 
-              {/* Color Legend */}
-              <div className="flex items-center gap-3 justify-center">
-                {([
-                  { status: "good" as InsightStatus, label: "Good" },
-                  { status: "moderate" as InsightStatus, label: "Watch" },
-                  { status: "needs-attention" as InsightStatus, label: "Focus" },
-                ]).map(({ status, label }) => (
-                  <div key={status} className="flex items-center gap-1">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STATUS_COLORS[status].fill }} />
-                    <span className="text-[9px] text-muted-foreground">{label}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Rider Pose + Metrics */}
-              <div className="relative">
-                <div className="flex items-start justify-between">
+              {/* Mannequin + Metric Cards */}
+              <div style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '16px 8px',
+                marginBottom: '12px',
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                }}>
                   {/* Left metrics */}
-                  <div className="space-y-4 pt-8 flex-shrink-0 w-[90px]">
-                    <MetricCard metric={seatAnalysis.metrics.pelvicBalance} confidence={seatAnalysis.confidence} side="left" />
-                    <MetricCard metric={seatAnalysis.metrics.seatStability} confidence={seatAnalysis.confidence} side="left" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '30px', width: '90px' }}>
+                    {view === "back" ? (
+                      <>
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.pelvicBalance,
+                          label: 'Shoulder Drop',
+                        }} side="left" />
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.seatStability,
+                          label: 'Knee Drop',
+                        }} side="left" />
+                      </>
+                    ) : view === "left" ? (
+                      <>
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.upperBodyLean,
+                          label: 'Upper arm',
+                        }} side="left" />
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.seatStability,
+                          label: 'Forearm',
+                        }} side="left" />
+                      </>
+                    ) : (
+                      <>
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.pelvicBalance,
+                          label: 'Head',
+                        }} side="left" />
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.upperBodyLean,
+                          label: 'Upper body',
+                        }} side="left" />
+                      </>
+                    )}
                   </div>
 
-                  {/* Rider figure */}
-                  <div className="flex-shrink-0">
-                    <RiderSilhouette view={view} metrics={seatAnalysis.metrics} confidence={seatAnalysis.confidence} />
+                  {/* Mannequin */}
+                  <div style={{ flex: '0 0 auto' }}>
+                    <RiderMannequin view={view} metrics={seatAnalysis.metrics} />
                   </div>
 
                   {/* Right metrics */}
-                  <div className="space-y-4 pt-8 flex-shrink-0 w-[90px]">
-                    <MetricCard metric={seatAnalysis.metrics.hipDrop} confidence={seatAnalysis.confidence} side="right" />
-                    <MetricCard metric={seatAnalysis.metrics.upperBodyLean} confidence={seatAnalysis.confidence} side="right" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '30px', width: '90px' }}>
+                    {view === "back" ? (
+                      <>
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.hipDrop,
+                          label: 'Head Tilt',
+                        }} side="right" />
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.upperBodyLean,
+                          label: 'Hip Drop',
+                        }} side="right" />
+                      </>
+                    ) : view === "left" ? (
+                      <>
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.pelvicBalance,
+                          label: 'Head',
+                        }} side="right" />
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.hipDrop,
+                          label: 'Lower leg',
+                        }} side="right" />
+                      </>
+                    ) : (
+                      <>
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.hipDrop,
+                          label: 'Upper arm',
+                        }} side="right" />
+                        <MetricCard metric={{
+                          ...seatAnalysis.metrics.seatStability,
+                          label: 'Forearm',
+                        }} side="right" />
+                      </>
+                    )}
                   </div>
                 </div>
+
+                {/* Overall Score Bar */}
+                <ScoreBar score={computedOverallScore} />
               </div>
 
-              {/* Evidence Selector */}
-              {evidenceFrames.length > 0 && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">Evidence</p>
-                  <div className="flex gap-2">
-                    {evidenceFrames.map((frameIdx, i) => (
-                      <button
-                        key={frameIdx}
-                        onClick={() => {
-                          setSelectedFrameIdx(i);
-                          if (seatAnalysis.evidenceTimestamps[i] !== undefined) {
-                            onJumpToTimestamp(seatAnalysis.evidenceTimestamps[i]);
-                          }
-                        }}
-                        className={`relative flex-1 rounded-xl overflow-hidden border-2 transition-colors ${
-                          selectedFrameIdx === i ? "border-primary" : "border-transparent"
-                        }`}
-                      >
-                        <img
-                          src={extractedFrames[frameIdx]}
-                          alt={`Seat evidence ${i + 1}`}
-                          className="w-full aspect-[4/3] object-cover"
-                        />
-                        <div className="absolute inset-0 bg-foreground/10 hover:bg-foreground/20 transition-colors flex items-center justify-center">
-                          <Play size={16} className="text-background opacity-60" />
-                        </div>
-                        {seatAnalysis.evidenceTimestamps[i] !== undefined && (
-                          <span className="absolute bottom-1 left-1 text-[8px] bg-foreground/60 text-background px-1 py-0.5 rounded font-medium">
-                            {formatTime(seatAnalysis.evidenceTimestamps[i])}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Summary Section */}
+              <div style={{ marginBottom: '12px' }}>
+                <div style={{
+                  fontSize: '16px', fontWeight: 700, color: COLORS.dark,
+                  fontFamily: "'Playfair Display', serif",
+                  marginBottom: '10px',
+                }}>Summary</div>
+                <div style={{
+                  fontSize: '13px', color: '#6B6055',
+                  fontFamily: "'DM Sans', sans-serif",
+                  lineHeight: 1.55,
+                  marginBottom: '12px',
+                }}>{seatAnalysis.summary}</div>
 
-              {/* Coach Feedback */}
-              <div className="space-y-2.5 pt-1">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-0.5">Seat Summary</p>
-                  <p className="text-xs text-foreground leading-relaxed">{seatAnalysis.summary}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-0.5">Why it matters</p>
-                  <p className="text-xs text-foreground leading-relaxed">{seatAnalysis.whyItMatters}</p>
-                </div>
-                <div className="p-2.5 rounded-xl bg-sage-light/50">
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground mb-0.5">Try this</p>
-                  <p className="text-xs font-medium text-foreground">{seatAnalysis.tryThis}</p>
-                </div>
+                {/* Insight cards */}
+                <InsightCard
+                  title="Upper Body Lean"
+                  description={seatAnalysis.whyItMatters}
+                  status={metricToStatus(seatAnalysis.metrics.upperBodyLean)}
+                />
+                <InsightCard
+                  title="Hip Balance"
+                  description="Your hips may be slightly uneven, which can affect your horse's straightness."
+                  status={metricToStatus(seatAnalysis.metrics.hipDrop)}
+                />
               </div>
+
+              {/* Try This */}
+              <div style={{
+                background: `${COLORS.green}12`,
+                borderRadius: '14px',
+                padding: '14px 16px',
+                marginBottom: '12px',
+                border: `1px solid ${COLORS.green}25`,
+              }}>
+                <div style={{
+                  fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' as const,
+                  letterSpacing: '0.5px', color: COLORS.green,
+                  fontFamily: "'DM Sans', sans-serif",
+                  marginBottom: '4px',
+                }}>Try this</div>
+                <div style={{
+                  fontSize: '13px', fontWeight: 500, color: COLORS.dark,
+                  fontFamily: "'DM Sans', sans-serif",
+                  lineHeight: 1.5,
+                }}>{seatAnalysis.tryThis}</div>
+              </div>
+
+              {/* Part by Part */}
+              <PartByPartCarousel metrics={seatAnalysis.metrics} />
 
               {/* Confidence note */}
               {seatAnalysis.confidence === "low" && (
-                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
-                  <Shield size={10} className="text-muted-foreground shrink-0" />
-                  <p className="text-[9px] text-muted-foreground italic">
-                    Lower confidence — colors are softened. Results may improve with clearer video angles.
-                  </p>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '10px 12px', borderRadius: '10px',
+                  background: '#F0EBE4', marginTop: '10px',
+                }}>
+                  <Shield size={12} color={COLORS.muted} />
+                  <span style={{
+                    fontSize: '10px', color: COLORS.muted, fontStyle: 'italic',
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}>Lower confidence — colors are softened. Results improve with clearer video angles.</span>
                 </div>
               )}
 
               {/* Disclaimer */}
-              <div className="flex items-center gap-1">
-                <Shield size={9} className="text-muted-foreground" />
-                <p className="text-[9px] text-muted-foreground italic">Assistive · AI Vision · Reuses existing pose data</p>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                marginTop: '10px',
+              }}>
+                <Shield size={10} color={COLORS.muted} />
+                <span style={{
+                  fontSize: '9px', color: COLORS.muted, fontStyle: 'italic',
+                  fontFamily: "'DM Sans', sans-serif",
+                }}>Assistive · AI Vision · Reuses existing pose data</span>
               </div>
             </div>
           </motion.div>
@@ -469,11 +896,5 @@ const SeatPositionAnalysis = ({
     </motion.div>
   );
 };
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
 
 export default SeatPositionAnalysis;

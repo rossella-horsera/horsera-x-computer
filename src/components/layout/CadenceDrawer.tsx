@@ -47,6 +47,8 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [comingSoonMsg, setComingSoonMsg] = useState<string | null>(null);
+  const comingSoonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -173,36 +175,17 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
     }
   }, [messages, isStreaming]);
 
-  // Voice input handling
+  // Show a temporary "coming soon" message
+  const showComingSoon = useCallback((msg: string) => {
+    if (comingSoonTimerRef.current) clearTimeout(comingSoonTimerRef.current);
+    setComingSoonMsg(msg);
+    comingSoonTimerRef.current = setTimeout(() => setComingSoonMsg(null), 2500);
+  }, []);
+
+  // Voice input handling — coming soon
   const toggleRecording = useCallback(async () => {
-    if (isRecording) {
-      mediaRecorderRef.current?.stop();
-      setIsRecording(false);
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        stream.getTracks().forEach(t => t.stop());
-        // For now, voice input creates a placeholder — real STT would go here
-        setInput(prev => prev || '(Voice message — transcription coming soon)');
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch {
-      // Microphone not available
-    }
-  }, [isRecording]);
+    showComingSoon('Voice input coming soon');
+  }, [showComingSoon]);
 
   if (!open) return null;
 
@@ -393,6 +376,29 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
           </div>
         )}
 
+        {/* Coming soon toast */}
+        {comingSoonMsg && (
+          <div style={{
+            position: 'fixed',
+            bottom: '120px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#1C1510',
+            color: '#FAF7F3',
+            padding: '8px 16px',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 500,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+            zIndex: 90,
+            animation: 'fadeInUp 0.2s ease',
+            whiteSpace: 'nowrap',
+          }}>
+            {comingSoonMsg}
+          </div>
+        )}
+
         {/* Input bar */}
         <div style={{
           padding: '12px 16px 24px',
@@ -445,9 +451,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
 
           {/* Attachment button */}
           <button
-            onClick={() => {
-              // Placeholder for file attachment
-            }}
+            onClick={() => showComingSoon('Photo & video sharing coming soon')}
             style={{
               width: 40, height: 40,
               borderRadius: '50%',
@@ -492,6 +496,10 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
           @keyframes blink {
             0%, 100% { opacity: 0.5; }
             50% { opacity: 0; }
+          }
+          @keyframes fadeInUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
           }
         `}</style>
       </div>
