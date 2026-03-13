@@ -1,5 +1,7 @@
-// Local persistence for rides and analysis results
-// Will be replaced with Supabase when credentials are configured
+// Persistence for rides and analysis results
+// Uses safeStorage (localStorage with in-memory fallback)
+
+import { safeStorage } from './safeStorage';
 
 export interface StoredRide {
   id: string;
@@ -32,13 +34,13 @@ const STORAGE_KEY = 'horsera_rides';
 
 export function saveRide(ride: StoredRide): void {
   const rides = getRides();
-  rides.unshift(ride); // newest first
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(rides));
+  rides.unshift(ride);
+  safeStorage.setItem(STORAGE_KEY, JSON.stringify(rides));
 }
 
 export function getRides(): StoredRide[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = safeStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -47,5 +49,5 @@ export function getRides(): StoredRide[] {
 
 export function deleteRide(id: string): void {
   const rides = getRides().filter(r => r.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(rides));
+  safeStorage.setItem(STORAGE_KEY, JSON.stringify(rides));
 }

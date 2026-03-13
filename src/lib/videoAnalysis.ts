@@ -1,5 +1,7 @@
 // ─── Video Analysis Data Models ──────────────────────────────────────────────
 
+import { safeStorage } from './safeStorage';
+
 export type VideoSourceType = "upload" | "external";
 export type ExternalPlatform = "youtube" | "vimeo" | "loom" | "google-drive" | "icloud" | "other";
 
@@ -244,12 +246,12 @@ const STORAGE_KEYS = {
 export function saveVideoAsset(asset: VideoAsset): void {
   const existing = getVideoAssets();
   existing[asset.rideId] = asset;
-  localStorage.setItem(STORAGE_KEYS.videoAssets, JSON.stringify(existing));
+  safeStorage.setItem(STORAGE_KEYS.videoAssets, JSON.stringify(existing));
 }
 
 export function getVideoAssets(): Record<string, VideoAsset> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.videoAssets);
+    const raw = safeStorage.getItem(STORAGE_KEYS.videoAssets);
     return raw ? JSON.parse(raw) : {};
   } catch { return {}; }
 }
@@ -261,12 +263,12 @@ export function getVideoAssetForRide(rideId: string): VideoAsset | null {
 export function saveAnalysis(analysis: VideoAnalysisResult): void {
   const existing = getAllAnalyses();
   existing[analysis.rideId] = analysis;
-  localStorage.setItem(STORAGE_KEYS.analyses, JSON.stringify(existing));
+  safeStorage.setItem(STORAGE_KEYS.analyses, JSON.stringify(existing));
 }
 
 export function getAnalysisForRide(rideId: string): VideoAnalysisResult | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.analyses);
+    const raw = safeStorage.getItem(STORAGE_KEYS.analyses);
     const all = raw ? JSON.parse(raw) : {};
     return all[rideId] || null;
   } catch { return null; }
@@ -274,7 +276,7 @@ export function getAnalysisForRide(rideId: string): VideoAnalysisResult | null {
 
 function getAllAnalyses(): Record<string, VideoAnalysisResult> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.analyses);
+    const raw = safeStorage.getItem(STORAGE_KEYS.analyses);
     return raw ? JSON.parse(raw) : {};
   } catch { return {}; }
 }
@@ -282,12 +284,12 @@ function getAllAnalyses(): Record<string, VideoAnalysisResult> {
 export function saveMoments(videoId: string, moments: VideoMoment[]): void {
   const existing = getAllMoments();
   existing[videoId] = moments;
-  localStorage.setItem(STORAGE_KEYS.moments, JSON.stringify(existing));
+  safeStorage.setItem(STORAGE_KEYS.moments, JSON.stringify(existing));
 }
 
 export function getMomentsForVideo(videoId: string): VideoMoment[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.moments);
+    const raw = safeStorage.getItem(STORAGE_KEYS.moments);
     const all = raw ? JSON.parse(raw) : {};
     return all[videoId] || [];
   } catch { return []; }
@@ -295,7 +297,7 @@ export function getMomentsForVideo(videoId: string): VideoMoment[] {
 
 function getAllMoments(): Record<string, VideoMoment[]> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.moments);
+    const raw = safeStorage.getItem(STORAGE_KEYS.moments);
     return raw ? JSON.parse(raw) : {};
   } catch { return {}; }
 }
@@ -314,7 +316,7 @@ export function saveFrame(frame: SavedFrame): void {
   existing.push(frame);
   const all = getAllSavedFrames();
   all[frame.videoId] = existing;
-  localStorage.setItem(STORAGE_KEYS.savedFrames, JSON.stringify(all));
+  safeStorage.setItem(STORAGE_KEYS.savedFrames, JSON.stringify(all));
 }
 
 export function getSavedFrames(videoId: string): SavedFrame[] {
@@ -324,7 +326,7 @@ export function getSavedFrames(videoId: string): SavedFrame[] {
 
 function getAllSavedFrames(): Record<string, SavedFrame[]> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.savedFrames);
+    const raw = safeStorage.getItem(STORAGE_KEYS.savedFrames);
     return raw ? JSON.parse(raw) : {};
   } catch { return {}; }
 }

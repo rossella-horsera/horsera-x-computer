@@ -20,7 +20,7 @@ const suggestedPrompts = [
   'Explain my lower leg stability score',
 ];
 
-const API_BASE = import.meta.env.DEV ? 'http://localhost:8000' : '';
+const API_BASE = import.meta.env.DEV ? 'http://localhost:8000' : '__PORT_5000__'.startsWith('__') ? '' : '__PORT_5000__';
 
 // Simple markdown rendering for chat messages
 function renderMarkdown(text: string): string {

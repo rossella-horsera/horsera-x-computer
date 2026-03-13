@@ -18,4 +18,15 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      // Exclude TensorFlow.js from the bundle — it uses indexedDB/localStorage
+      // for model caching which is incompatible with sandboxed iframe deployment.
+      // The useVideoAnalysis hook handles the import failure gracefully.
+      external: [
+        "@tensorflow/tfjs",
+        "@tensorflow-models/pose-detection",
+      ],
+    },
+  },
 }));
