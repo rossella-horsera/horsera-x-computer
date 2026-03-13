@@ -21,6 +21,7 @@ const DISCIPLINES = [
   { value: 'usdf' as const, label: 'USDF Dressage' },
   { value: 'pony-club' as const, label: 'Pony Club' },
   { value: 'hunter-jumper' as const, label: 'Hunter / Jumper' },
+  { value: 'a-bit-of-everything' as const, label: 'A Bit of Everything' },
 ];
 
 interface ProfileSetupModalProps {
@@ -30,7 +31,7 @@ interface ProfileSetupModalProps {
 export default function ProfileSetupModal({ onComplete }: ProfileSetupModalProps) {
   const [firstName, setFirstName] = useState('');
   const [horseName, setHorseName] = useState('');
-  const [discipline, setDiscipline] = useState<'usdf' | 'pony-club' | 'hunter-jumper'>('usdf');
+  const [discipline, setDiscipline] = useState<'usdf' | 'pony-club' | 'hunter-jumper' | 'a-bit-of-everything'>('usdf');
 
   const handleSave = () => {
     if (!firstName.trim()) return;
@@ -146,13 +147,13 @@ export default function ProfileSetupModal({ onComplete }: ProfileSetupModalProps
           }}>
             Discipline
           </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             {DISCIPLINES.map(d => (
               <button
                 key={d.value}
                 onClick={() => setDiscipline(d.value)}
                 style={{
-                  flex: 1, padding: '10px 6px',
+                  padding: '10px 6px',
                   borderRadius: '10px', border: 'none', cursor: 'pointer',
                   background: discipline === d.value ? COLORS.cognac : COLORS.softBg,
                   color: discipline === d.value ? COLORS.parchment : '#7A6B5D',

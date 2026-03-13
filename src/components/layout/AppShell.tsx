@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import BottomNav from './BottomNav';
 import CadenceFAB from './CadenceFAB';
 import { CadenceProvider, useCadence } from '../../context/CadenceContext';
+import { getUserProfile } from '../../lib/userProfile';
+import ProfileSettingsPanel from '../ProfileSettingsPanel';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -9,6 +11,9 @@ interface AppShellProps {
 
 function AppShellInner({ children }: AppShellProps) {
   const { openCadence } = useCadence();
+  const [showSettings, setShowSettings] = useState(false);
+  const profile = getUserProfile();
+  const initial = profile.firstName ? profile.firstName[0].toUpperCase() : '?';
 
   return (
     <div
@@ -81,7 +86,24 @@ function AppShellInner({ children }: AppShellProps) {
           alt="Horsera"
           style={{ height: '30px', width: 'auto', display: 'block' }}
         />
+        <button
+          onClick={() => setShowSettings(true)}
+          style={{
+            position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
+            width: 30, height: 30, borderRadius: '50%',
+            background: '#8C5A3C', color: '#FAF7F3', border: 'none',
+            cursor: 'pointer', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', fontSize: '13px', fontWeight: 600,
+            fontFamily: "'DM Sans', sans-serif",
+            paddingTop: 'env(safe-area-inset-top, 0px)',
+          }}
+          aria-label="Profile settings"
+        >
+          {initial}
+        </button>
       </header>
+
+      <ProfileSettingsPanel open={showSettings} onClose={() => setShowSettings(false)} />
 
       <main
         className="flex-1 overflow-y-auto"

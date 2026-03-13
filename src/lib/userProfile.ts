@@ -3,7 +3,7 @@ import { safeStorage } from './safeStorage';
 export interface UserProfile {
   firstName: string;
   horseName: string;
-  discipline: 'usdf' | 'pony-club' | 'hunter-jumper';
+  discipline: 'usdf' | 'pony-club' | 'hunter-jumper' | 'a-bit-of-everything';
   level: string;
   isOnboarded: boolean;
 }

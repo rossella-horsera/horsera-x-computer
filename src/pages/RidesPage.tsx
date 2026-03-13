@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { mockRides, mockGoal } from '../data/mock';
 import type { Ride, BiometricsSnapshot } from '../data/mock';
 import { useVideoAnalysis } from '../hooks/useVideoAnalysis';
-import { computeRidingQualities } from '../lib/poseAnalysis';
+import { computeRidingQualities, generateInsights } from '../lib/poseAnalysis';
 import type { MovementInsight } from '../lib/poseAnalysis';
 import { saveRide, getRides } from '../lib/storage';
 import type { StoredRide } from '../lib/storage';
@@ -83,8 +83,12 @@ export default function RidesPage() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const { status, progress, result, error, analyzeVideo, reset } = useVideoAnalysis();
 
-  // Saved session state
+  // Saved ride state
   const [sessionSaved, setSessionSaved] = useState(false);
+
+  // Detail view for ride history
+  const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
+  const [selectedStoredRide, setSelectedStoredRide] = useState<StoredRide | undefined>(undefined);
   const [storedRides, setStoredRides] = useState<StoredRide[]>(getRides);
 
   // Refresh stored rides on mount
@@ -241,7 +245,7 @@ export default function RidesPage() {
                 fontFamily: FONTS.body,
               }}
             >
-              New Session
+              New Ride
             </button>
           )}
         </div>
@@ -570,7 +574,7 @@ export default function RidesPage() {
                         fontFamily: FONTS.body,
                       }}
                     >
-                      Save Session
+                      Save Ride
                     </button>
                   ) : (
                     <div style={{
@@ -579,7 +583,7 @@ export default function RidesPage() {
                       color: COLORS.green, fontFamily: FONTS.body,
                       fontSize: '14px', fontWeight: 600,
                     }}>
-                      ✓ Session Saved
+                      ✓ Ride Saved
                     </div>
                   )}
                   <button
@@ -665,7 +669,7 @@ export default function RidesPage() {
                   <path d="M12 4v12M6 10l6-6 6 6" stroke={COLORS.parchment} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M4 18h16" stroke={COLORS.parchment} strokeWidth="2" strokeLinecap="round" />
                 </svg>
-                Upload Session
+                Upload Ride
               </div>
             </div>
           </div>
@@ -678,7 +682,7 @@ export default function RidesPage() {
           fontFamily: FONTS.heading, fontSize: '18px', color: COLORS.charcoal,
           marginBottom: '12px',
         }}>
-          Session History
+          Ride History
         </div>
 
         {Object.entries(grouped).map(([month, rides]) => (
@@ -700,7 +704,11 @@ export default function RidesPage() {
                     ride={ride}
                     storedRide={stored ?? undefined}
                     onClick={() => {
-                      if (!isStored) navigate(`/rides/${ride.id}`);
+                      const bio = stored?.biometrics ?? ride.biometrics;
+                      if (bio) {
+                        setSelectedRide(ride);
+                        setSelectedStoredRide(stored ?? undefined);
+                      }
                     }}
                   />
                 );
@@ -725,6 +733,119 @@ export default function RidesPage() {
           50% { opacity: 1; transform: scale(1.3); }
         }
       `}</style>
+
+      {/* ── RIDE DETAIL VIEW ──────────────────────────────────── */}
+      {selectedRide && (() => {
+        const bio = selectedStoredRide?.biometrics ?? selectedRide.biometrics;
+        if (!bio) return null;
+        const qualities = computeRidingQualities(bio);
+        const insights = generateInsights(bio);
+        const d = new Date(selectedRide.date);
+        const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        const overall = selectedStoredRide?.overallScore
+          ?? Math.round((Object.values(bio).reduce((a, b) => a + b, 0) / Object.values(bio).length) * 100) / 100;
+
+        return (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            zIndex: 100, background: COLORS.parchment,
+            animation: 'slideInRight 0.25s ease-out',
+            overflowY: 'auto',
+          }}>
+            <style>{`
+              @keyframes slideInRight {
+                from { transform: translateX(100%); }
+                to { transform: translateX(0); }
+              }
+            `}</style>
+
+            {/* Header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '16px 20px', borderBottom: `1px solid ${COLORS.border}`,
+              background: COLORS.parchment, position: 'sticky', top: 0, zIndex: 2,
+            }}>
+              <button
+                onClick={() => { setSelectedRide(null); setSelectedStoredRide(undefined); }}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+                  display: 'flex', alignItems: 'center',
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M15 18l-6-6 6-6" stroke={COLORS.charcoal} strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </button>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: FONTS.heading, fontSize: '16px', color: COLORS.charcoal }}>
+                  {rideTypeLabel[selectedRide.type] ?? selectedRide.type} · {selectedRide.horse}
+                </div>
+                <div style={{ fontFamily: FONTS.mono, fontSize: '10.5px', color: COLORS.muted }}>
+                  {dateStr} · {selectedRide.duration}min
+                </div>
+              </div>
+              <div style={{
+                background: `${scoreColor(overall)}15`, color: scoreColor(overall),
+                padding: '4px 10px', borderRadius: '8px',
+                fontFamily: FONTS.mono, fontSize: '13px', fontWeight: 600,
+              }}>
+                {Math.round(overall * 100)}%
+              </div>
+            </div>
+
+            <div style={{ padding: '20px' }}>
+              {/* Your Position */}
+              <LayerHeader icon="🧍" title="Your Position" subtitle="Movement & Biomechanics" />
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '10px', marginBottom: '24px',
+              }}>
+                <RadialGauge value={Math.round(bio.lowerLegStability * 100)} label="Lower Leg" />
+                <RadialGauge value={Math.round(bio.reinSteadiness * 100)} label="Rein Steady" />
+                <RadialGauge value={Math.round(bio.reinSymmetry * 100)} label="Symmetry" />
+                <RadialGauge value={Math.round(bio.coreStability * 100)} label="Core" />
+                <RadialGauge value={Math.round(bio.upperBodyAlignment * 100)} label="Upper Body" />
+                <RadialGauge value={Math.round(bio.pelvisStability * 100)} label="Pelvis" />
+              </div>
+
+              {/* Riding Quality */}
+              <LayerHeader icon="◎" title="Riding Quality" subtitle="The Training Scales" />
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '10px', marginBottom: '24px',
+              }}>
+                {qualities.map((q) => (
+                  <RadialGauge key={q.name} value={q.score} label={q.name} color={q.color} />
+                ))}
+              </div>
+
+              {/* Key Insights */}
+              <InsightsCard insights={insights} />
+
+              {/* Reflection (if available) */}
+              {selectedRide.reflection && (
+                <div style={{
+                  marginTop: '16px', background: COLORS.cardBg, borderRadius: '14px',
+                  padding: '16px', border: `1px solid ${COLORS.border}`,
+                }}>
+                  <div style={{
+                    fontFamily: FONTS.heading, fontSize: '14px', color: COLORS.charcoal,
+                    marginBottom: '8px',
+                  }}>
+                    Ride Notes
+                  </div>
+                  <div style={{
+                    fontFamily: FONTS.body, fontSize: '12.5px', color: '#6B5E50',
+                    lineHeight: 1.55,
+                  }}>
+                    {selectedRide.reflection}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
