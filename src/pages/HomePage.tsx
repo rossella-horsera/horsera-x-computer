@@ -21,7 +21,7 @@ function HeroPlaceholder() {
     <div style={{ height: '290px', position: 'relative', overflow: 'hidden', background: '#2A1F15' }}>
       {/* Real hero photo */}
       <img
-        src="/hero.jpg"
+        src={`${import.meta.env.BASE_URL}hero.jpg`}
         alt=""
         style={{
           position: 'absolute', inset: 0,

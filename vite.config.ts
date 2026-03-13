@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  base: "./",
   build: {
     rollupOptions: {
       // Exclude TensorFlow.js from the bundle — it uses indexedDB/localStorage

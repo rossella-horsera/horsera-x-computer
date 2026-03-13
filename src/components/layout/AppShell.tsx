@@ -77,7 +77,7 @@ function AppShellInner({ children }: AppShellProps) {
         flexShrink: 0,
       }}>
         <img
-          src="/horsera-logo.png"
+          src={`${import.meta.env.BASE_URL}horsera-logo.png`}
           alt="Horsera"
           style={{ height: '30px', width: 'auto', display: 'block' }}
         />
