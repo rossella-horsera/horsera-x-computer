@@ -3,54 +3,20 @@ import { useLocation, useNavigate } from 'react-router-dom';
 const navItems = [
   {
     path: '/',
-    label: 'Home',
-    icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M3 9.5L12 3L21 9.5V20C21 20.55 20.55 21 20 21H15V15H9V21H4C3.45 21 3 20.55 3 20V9.5Z"
-          fill={active ? '#8C5A3C' : 'none'}
-          stroke={active ? '#8C5A3C' : '#C4B8AC'}
-          strokeWidth={active ? '0' : '1.7'}
-        />
-      </svg>
-    ),
-  },
-  {
-    path: '/journey',
-    label: 'Journey',
-    icon: (active: boolean) => (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke={active ? '#8C5A3C' : '#C4B8AC'} strokeWidth="1.7" />
-        <path
-          d="M12 7.5V12L15 15"
-          stroke={active ? '#8C5A3C' : '#C4B8AC'}
-          strokeWidth="1.7"
-          strokeLinecap="round"
-        />
-        {active && <circle cx="12" cy="12" r="2.5" fill="#8C5A3C" opacity="0.15" />}
-      </svg>
-    ),
-  },
-  {
-    path: '/rides',
     label: 'Rides',
     icon: (active: boolean) => (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        {/* Play/video icon — represents video analysis */}
         <rect
-          x="4" y="5" width="16" height="16" rx="3"
+          x="3" y="4" width="18" height="16" rx="3"
           stroke={active ? '#8C5A3C' : '#C4B8AC'}
           strokeWidth="1.7"
           fill={active ? 'rgba(140,90,60,0.08)' : 'none'}
         />
         <path
-          d="M8 3V7M16 3V7M4 10H20"
-          stroke={active ? '#8C5A3C' : '#C4B8AC'}
-          strokeWidth="1.7"
-          strokeLinecap="round"
+          d="M10 8.5V15.5L16 12L10 8.5Z"
+          fill={active ? '#8C5A3C' : '#C4B8AC'}
         />
-        <circle cx="9" cy="14" r="1" fill={active ? '#8C5A3C' : '#C4B8AC'} />
-        <circle cx="12" cy="14" r="1" fill={active ? '#8C5A3C' : '#C4B8AC'} />
-        <circle cx="15" cy="14" r="1" fill={active ? '#8C5A3C' : '#C4B8AC'} />
       </svg>
     ),
   },
@@ -69,6 +35,37 @@ const navItems = [
         {active && (
           <path d="M4 18L8 12L12 15L16 8L20 11V18H4Z" fill="#8C5A3C" opacity="0.08" />
         )}
+      </svg>
+    ),
+  },
+  {
+    path: '/journey',
+    label: 'Journey',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        {/* Path/road icon — represents the journey concept */}
+        <path
+          d="M12 3C12 3 5 10 5 15C5 18.87 8.13 22 12 22C15.87 22 19 18.87 19 15C19 10 12 3 12 3Z"
+          stroke={active ? '#8C5A3C' : '#C4B8AC'}
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill={active ? 'rgba(140,90,60,0.08)' : 'none'}
+        />
+        {/* Winding path inside */}
+        <path
+          d="M9.5 14C10.5 13 13.5 13 14.5 14"
+          stroke={active ? '#8C5A3C' : '#C4B8AC'}
+          strokeWidth="1.3"
+          strokeLinecap="round"
+        />
+        <path
+          d="M10 17C11 16 13 16 14 17"
+          stroke={active ? '#8C5A3C' : '#C4B8AC'}
+          strokeWidth="1.3"
+          strokeLinecap="round"
+        />
+        <circle cx="12" cy="10.5" r="1.2" fill={active ? '#8C5A3C' : '#C4B8AC'} />
       </svg>
     ),
   },
@@ -98,7 +95,10 @@ export default function BottomNav() {
       }}
     >
       {navItems.map((item) => {
-        const active = location.pathname === item.path;
+        // Rides tab is active for both / and /rides
+        const active = item.path === '/'
+          ? location.pathname === '/' || location.pathname === '/rides' || location.pathname.startsWith('/rides/')
+          : location.pathname === item.path;
         return (
           <button
             key={item.path}

@@ -2,9 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppShell from "./components/layout/AppShell";
-import HomePage from "./pages/HomePage";
 import JourneyPage from "./pages/JourneyPage";
 import RidesPage from "./pages/RidesPage";
 import RideDetailPage from "./pages/RideDetailPage";
@@ -21,10 +20,10 @@ const App = () => (
       <BrowserRouter>
         <AppShell>
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/journey" element={<JourneyPage />} />
-            <Route path="/rides" element={<RidesPage />} />
+            <Route path="/" element={<RidesPage />} />
+            <Route path="/rides" element={<Navigate to="/" replace />} />
             <Route path="/rides/:id" element={<RideDetailPage />} />
+            <Route path="/journey" element={<JourneyPage />} />
             <Route path="/insights" element={<InsightsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

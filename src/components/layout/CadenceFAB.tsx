@@ -77,25 +77,40 @@ export default function CadenceFAB({ onClick }: CadenceFABProps) {
           pointerEvents: 'none',
         }} />
 
-        {/* Inner orb — breathes with the organic timing */}
+        {/* Waveform icon — three bars pulsing independently */}
         <div style={{
-          width: '24px',
-          height: '24px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle at 32% 32%, #E2C384 0%, #C9A96E 55%, #A8834E 100%)',
-          boxShadow: '0 0 12px rgba(201,169,110,0.45), inset 0 1px 2px rgba(255,255,255,0.18)',
-          animation: 'cadence-breathe 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          gap: '3.5px',
+          animation: 'cadence-breathe 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         }}>
-          {/* Pupil */}
+          {/* Left bar — shorter, slower pulse */}
           <div style={{
-            width: '7px',
-            height: '7px',
-            borderRadius: '50%',
-            background: '#1C1510',
-            opacity: 0.85,
+            width: '3.5px',
+            height: '10px',
+            borderRadius: '2px',
+            background: 'linear-gradient(180deg, #E2C384 0%, #C9A96E 100%)',
+            boxShadow: '0 0 6px rgba(201,169,110,0.35)',
+            animation: 'cadence-bar-left 2.8s ease-in-out infinite',
+          }} />
+          {/* Center bar — tallest, slightly different timing */}
+          <div style={{
+            width: '3.5px',
+            height: '16px',
+            borderRadius: '2px',
+            background: 'linear-gradient(180deg, #E2C384 0%, #C9A96E 100%)',
+            boxShadow: '0 0 8px rgba(201,169,110,0.4)',
+            animation: 'cadence-bar-center 2.2s ease-in-out infinite',
+          }} />
+          {/* Right bar — medium height, offset timing */}
+          <div style={{
+            width: '3.5px',
+            height: '12px',
+            borderRadius: '2px',
+            background: 'linear-gradient(180deg, #E2C384 0%, #C9A96E 100%)',
+            boxShadow: '0 0 6px rgba(201,169,110,0.35)',
+            animation: 'cadence-bar-right 3.2s ease-in-out infinite',
           }} />
         </div>
       </button>

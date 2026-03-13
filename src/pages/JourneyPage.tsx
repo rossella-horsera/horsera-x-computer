@@ -300,7 +300,86 @@ export default function JourneyPage() {
   };
 
   return (
-    <div style={{ background: '#FAF7F3', minHeight: '100%', paddingBottom: '28px' }}>
+    <div style={{ background: '#FAF7F3', minHeight: '100dvh', paddingBottom: '28px', position: 'relative' }}>
+
+      {/* ─── Coming Soon Overlay ─── */}
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 30,
+        background: 'rgba(250,247,243,0.92)',
+        backdropFilter: 'blur(12px)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 32px',
+        textAlign: 'center',
+      }}>
+        {/* Journey icon */}
+        <div style={{
+          width: 72,
+          height: 72,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, rgba(201,169,110,0.12) 0%, rgba(140,90,60,0.08) 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 24,
+          border: '1.5px solid rgba(201,169,110,0.2)',
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 3C12 3 5 10 5 15C5 18.87 8.13 22 12 22C15.87 22 19 18.87 19 15C19 10 12 3 12 3Z"
+              stroke="#C9A96E"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="rgba(201,169,110,0.1)"
+            />
+            <path d="M9.5 14C10.5 13 13.5 13 14.5 14" stroke="#C9A96E" strokeWidth="1.2" strokeLinecap="round" />
+            <path d="M10 17C11 16 13 16 14 17" stroke="#C9A96E" strokeWidth="1.2" strokeLinecap="round" />
+            <circle cx="12" cy="10.5" r="1.2" fill="#C9A96E" />
+          </svg>
+        </div>
+
+        <h2 style={{
+          fontFamily: "'Playfair Display', serif",
+          fontSize: '28px',
+          fontWeight: 400,
+          color: '#1A140E',
+          marginBottom: 10,
+          letterSpacing: '-0.01em',
+        }}>
+          Coming Soon
+        </h2>
+
+        <p style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: '14px',
+          color: '#7A6B5D',
+          lineHeight: 1.6,
+          maxWidth: 280,
+          marginBottom: 28,
+        }}>
+          Your personalised riding development path — goals, skills, and progress tracking — launching soon.
+        </p>
+
+        <button style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: '13px',
+          fontWeight: 600,
+          color: '#8C5A3C',
+          background: 'rgba(140,90,60,0.08)',
+          border: '1.5px solid rgba(140,90,60,0.2)',
+          borderRadius: '12px',
+          padding: '10px 24px',
+          cursor: 'pointer',
+          letterSpacing: '0.02em',
+        }}>
+          Notify Me
+        </button>
+      </div>
 
       {/* ─── Header ─── */}
       <div style={{ padding: '20px 20px 16px' }}>

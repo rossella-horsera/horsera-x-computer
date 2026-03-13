@@ -42,6 +42,19 @@ function AppShellInner({ children }: AppShellProps) {
           80%  { transform: scale(1.85); opacity: 0; }
           100% { transform: scale(1.85); opacity: 0; }
         }
+        @keyframes cadence-bar-left {
+          0%, 100% { height: 10px; opacity: 0.85; }
+          45%      { height: 15px; opacity: 1; }
+        }
+        @keyframes cadence-bar-center {
+          0%, 100% { height: 16px; opacity: 0.9; }
+          50%      { height: 10px; opacity: 0.75; }
+        }
+        @keyframes cadence-bar-right {
+          0%, 100% { height: 12px; opacity: 0.85; }
+          40%      { height: 8px;  opacity: 0.7; }
+          70%      { height: 16px; opacity: 1; }
+        }
       `}</style>
 
       {/* ── Top header bar — Horsera brand mark ── */}
