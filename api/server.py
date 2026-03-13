@@ -148,6 +148,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
+    riderName: str | None = None
 
 class UsageResponse(BaseModel):
     daily_used: int
@@ -173,13 +174,18 @@ async def cadence_chat(request: ChatRequest):
         role = "user" if msg.role == "user" else "assistant"
         api_messages.append({"role": role, "content": msg.content})
 
+    # Build system prompt, optionally with rider name
+    system_prompt = CADENCE_SYSTEM
+    if request.riderName:
+        system_prompt += f"\n\nThe rider's name is {request.riderName}."
+
     # Stream the response
     def generate():
         try:
             with client.messages.stream(
                 model="claude_haiku_4_5",
                 max_tokens=512,
-                system=CADENCE_SYSTEM,
+                system=system_prompt,
                 messages=api_messages,
             ) as stream:
                 for text in stream.text_stream:

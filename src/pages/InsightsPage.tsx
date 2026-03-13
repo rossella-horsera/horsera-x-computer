@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { biometricsTrend, mockGoal, cadenceInsights, mockRides } from '../data/mock';
+import { computeRidingQualities } from '../lib/poseAnalysis';
+import type { BiometricsSnapshot } from '../data/mock';
 import CadenceInsightCard from '../components/ui/CadenceInsightCard';
 
 type TabId = 'trends' | 'milestones' | 'patterns';
@@ -236,11 +238,43 @@ function PatternsTab() {
   );
 }
 
+function trendToBiometrics(d: typeof biometricsTrend[0]): BiometricsSnapshot {
+  return {
+    lowerLegStability: d.lowerLeg,
+    reinSteadiness: d.reins,
+    reinSymmetry: d.reins * 0.85,  // approximation — no raw symmetry in trend data
+    coreStability: d.core,
+    upperBodyAlignment: d.upperBody,
+    pelvisStability: d.pelvis,
+  };
+}
+
+const GLOSSARY_POSITION = [
+  { term: 'Lower Leg Stability', def: 'Ankle drift relative to hip-line and stirrup pressure consistency.' },
+  { term: 'Rein Steadiness', def: 'Hand movement amplitude and smoothness of contact.' },
+  { term: 'Rein Symmetry', def: 'Left/right balance and lateral drift patterns.' },
+  { term: 'Core Stability', def: 'Torso angle consistency and absorption of horse movement.' },
+  { term: 'Upper Body Alignment', def: 'Shoulder-hip-heel line and forward/backward lean.' },
+  { term: 'Pelvis Stability', def: 'Lateral tilt, rotational consistency, sitting trot absorption.' },
+];
+
+const GLOSSARY_QUALITY = [
+  { term: 'Rhythm', def: 'Consistency of tempo across all gaits.' },
+  { term: 'Relaxation', def: 'Freedom from tension in body and contact.' },
+  { term: 'Contact', def: 'Steady, elastic connection through the reins.' },
+  { term: 'Impulsion', def: 'Energy and thrust from the hindquarters.' },
+  { term: 'Straightness', def: 'Alignment of forehand to hindquarters.' },
+  { term: 'Balance', def: 'Self-carriage and distribution of weight.' },
+];
+
+const QUALITY_COLORS = ['#C9A96E', '#7D9B76', '#8C5A3C', '#C4714A', '#6B7FA3', '#B5A898'];
+
 export default function InsightsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('trends');
   const [activeMetrics, setActiveMetrics] = useState<Set<MetricKey>>(
     new Set(['lowerLeg', 'reins', 'core'])
   );
+  const [showGlossary, setShowGlossary] = useState(false);
 
   const toggleMetric = (key: MetricKey) => {
     setActiveMetrics(prev => {
@@ -272,9 +306,56 @@ export default function InsightsPage() {
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '26px', fontWeight: 400, color: '#1A140E', marginBottom: '4px' }}>
           Insights
         </h1>
-        <p style={{ fontSize: '12px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif", margin: '0 0 16px' }}>
-          4-week position overview
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 16px' }}>
+          <p style={{ fontSize: '12px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif", margin: 0 }}>
+            4-week position overview
+          </p>
+          <button
+            onClick={() => setShowGlossary(g => !g)}
+            style={{
+              background: showGlossary ? '#8C5A3C' : '#F0EBE4',
+              border: 'none', borderRadius: '8px', padding: '3px 9px',
+              cursor: 'pointer', fontSize: '10px', fontWeight: 600,
+              color: showGlossary ? '#FAF7F3' : '#8C5A3C',
+              fontFamily: "'DM Sans', sans-serif",
+              transition: 'all 0.15s',
+            }}
+          >
+            ℹ️ Glossary
+          </button>
+        </div>
+
+        {showGlossary && (
+          <div style={{
+            background: '#FFFFFF', borderRadius: '16px', padding: '16px',
+            boxShadow: '0 2px 10px rgba(26,20,14,0.05)', marginBottom: '8px',
+          }}>
+            <div style={{ fontSize: '10px', fontWeight: 600, color: '#B5A898', letterSpacing: '0.14em', textTransform: 'uppercase', fontFamily: "'DM Sans', sans-serif", marginBottom: '10px' }}>
+              Your Position
+            </div>
+            <p style={{ fontSize: '11px', color: '#7A6B5D', fontFamily: "'DM Sans', sans-serif", margin: '0 0 8px', lineHeight: 1.5 }}>
+              How your body moves in the saddle. These 6 metrics capture your alignment, stability, and balance.
+            </p>
+            {GLOSSARY_POSITION.map(g => (
+              <div key={g.term} style={{ padding: '4px 0', borderBottom: '1px solid #F0EBE4' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#1A140E', fontFamily: "'DM Sans', sans-serif" }}>{g.term}</span>
+                <span style={{ fontSize: '10.5px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}> — {g.def}</span>
+              </div>
+            ))}
+            <div style={{ fontSize: '10px', fontWeight: 600, color: '#B5A898', letterSpacing: '0.14em', textTransform: 'uppercase', fontFamily: "'DM Sans', sans-serif", marginTop: '14px', marginBottom: '10px' }}>
+              Riding Quality
+            </div>
+            <p style={{ fontSize: '11px', color: '#7A6B5D', fontFamily: "'DM Sans', sans-serif", margin: '0 0 8px', lineHeight: 1.5 }}>
+              The classical training scales that describe the quality of your horse's way of going, directly influenced by your position.
+            </p>
+            {GLOSSARY_QUALITY.map(g => (
+              <div key={g.term} style={{ padding: '4px 0', borderBottom: '1px solid #F0EBE4' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#1A140E', fontFamily: "'DM Sans', sans-serif" }}>{g.term}</span>
+                <span style={{ fontSize: '10.5px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}> — {g.def}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: '8px',
@@ -327,6 +408,15 @@ export default function InsightsPage() {
 
         {activeTab === 'trends' && (
           <>
+            {/* ── Your Position — Movement Trends ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2, marginTop: 4 }}>
+              <span style={{ fontSize: 20 }}>🧍</span>
+              <div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: '#1A140E' }}>Your Position</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#B5A898' }}>Movement Trends</div>
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {METRIC_CONFIG.map(({ key, label, color }) => {
                 const active = activeMetrics.has(key);
@@ -369,6 +459,47 @@ export default function InsightsPage() {
               {METRIC_CONFIG.map(({ key, label, color }) => (
                 <MetricSummaryRow key={key} metricKey={key} label={label} color={color} data={biometricsTrend} />
               ))}
+            </div>
+
+            {/* ── Riding Quality — The Scales Over Time ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2, marginTop: 12 }}>
+              <span style={{ fontSize: 20 }}>🎯</span>
+              <div>
+                <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: '#1A140E' }}>Riding Quality</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#B5A898' }}>The Scales Over Time</div>
+              </div>
+            </div>
+
+            <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '14px 16px', boxShadow: '0 2px 10px rgba(26,20,14,0.05)' }}>
+              {(() => {
+                const latestBio = trendToBiometrics(latest);
+                const firstBio = trendToBiometrics(biometricsTrend[0]);
+                const latestQ = computeRidingQualities(latestBio);
+                const firstQ = computeRidingQualities(firstBio);
+                return latestQ.map((q, i) => {
+                  const delta = q.score - firstQ[i].score;
+                  const trend = delta > 0.02 ? 'up' : delta < -0.02 ? 'down' : 'flat';
+                  const trendColor = trend === 'up' ? '#7D9B76' : trend === 'down' ? '#C4714A' : '#C9A96E';
+                  const trendSymbol = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
+                  const pct = Math.round(q.score * 100);
+                  return (
+                    <div key={q.name} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', borderBottom: i < latestQ.length - 1 ? '1px solid #F0EBE4' : 'none' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: QUALITY_COLORS[i], flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '12.5px', color: '#1A140E', fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+                          {q.name}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}>
+                          {pct}% · <span style={{ color: trendColor }}>{trendSymbol} {Math.abs(Math.round(delta * 100))}pts</span>
+                        </div>
+                      </div>
+                      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '14px', fontWeight: 500, color: QUALITY_COLORS[i] }}>
+                        {pct}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </>
         )}

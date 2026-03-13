@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { getUserProfile } from '../../lib/userProfile';
 
 interface Message {
   role: 'cadence' | 'rider';
@@ -35,10 +36,12 @@ interface CadenceDrawerProps {
 }
 
 export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
+  const profile = getUserProfile();
+  const riderName = profile.firstName || 'Rider';
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'cadence',
-      text: "Hi Rossella. I've been watching your recent rides. Your rein steadiness has improved noticeably — and your lower leg is your current focus. What's on your mind today?",
+      text: `Hi ${riderName}. I've been watching your recent rides. Your rein steadiness has improved noticeably — and your lower leg is your current focus. What's on your mind today?`,
       timestamp: 'Now',
     },
   ]);
@@ -89,7 +92,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
       const response = await fetch(`${API_BASE}/api/cadence/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, riderName: getUserProfile().firstName || undefined }),
       });
 
       if (response.status === 429) {

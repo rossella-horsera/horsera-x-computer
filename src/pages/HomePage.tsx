@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CadenceInsightCard from '../components/ui/CadenceInsightCard';
 import { useCadence } from '../context/CadenceContext';
@@ -9,13 +10,26 @@ import {
   biometricsTrend,
   cadenceInsights,
 } from '../data/mock';
+import { getUserProfile, isProfileComplete } from '../lib/userProfile';
+import ProfileSetupModal from '../components/ProfileSetupModal';
 
 // ─── Atmospheric hero placeholder ─────────────────────────────────────────────
 // Replace the gradient hero with a real photo by swapping this component.
 // Photo spec: equestrian rider in motion, warm light, 430×280px, editorial feel.
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
 function HeroPlaceholder() {
   const activeMilestone = mockGoal.milestones.find(m => m.state === 'working');
+  const profile = getUserProfile();
+  const displayName = profile.firstName || 'Rider';
+  const horseName = profile.horseName || mockRider.horse;
+  const discipline = profile.discipline || mockRider.track;
 
   return (
     <div style={{ height: '290px', position: 'relative', overflow: 'hidden', background: '#2A1F15' }}>
@@ -60,7 +74,7 @@ function HeroPlaceholder() {
           textTransform: 'uppercase',
           marginBottom: '6px',
         }}>
-          {mockRider.track === 'usdf' ? 'USDF Dressage' : 'Pony Club'} · with {mockRider.horse}
+          {discipline === 'usdf' ? 'USDF Dressage' : discipline === 'pony-club' ? 'Pony Club' : 'Hunter/Jumper'} · with {horseName}
         </p>
         <h1 style={{
           fontFamily: "'Playfair Display', serif",
@@ -71,7 +85,7 @@ function HeroPlaceholder() {
           marginBottom: '4px',
           textShadow: '0 1px 8px rgba(0,0,0,0.30)',
         }}>
-          Good morning,<br />{mockRider.firstName}.
+          {getGreeting()},<br />{displayName}.
         </h1>
         {activeMilestone && (
           <p style={{
@@ -128,6 +142,7 @@ function WeekBar() {
 export default function HomePage() {
   const navigate = useNavigate();
   const { openCadence } = useCadence();
+  const [showProfileSetup, setShowProfileSetup] = useState(!isProfileComplete());
 
   const latestRide = mockRides[0];
   const activeMilestone = mockGoal.milestones.find(m => m.state === 'working');
@@ -362,6 +377,11 @@ export default function HomePage() {
         </button>
 
       </div>
+
+      {/* Profile setup modal — first visit */}
+      {showProfileSetup && (
+        <ProfileSetupModal onComplete={() => setShowProfileSetup(false)} />
+      )}
     </div>
   );
 }

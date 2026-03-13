@@ -7,6 +7,9 @@ import { computeRidingQualities } from '../lib/poseAnalysis';
 import type { MovementInsight } from '../lib/poseAnalysis';
 import { saveRide, getRides } from '../lib/storage';
 import type { StoredRide } from '../lib/storage';
+import { getUserProfile, isProfileComplete } from '../lib/userProfile';
+import VideoSilhouetteOverlay from '../components/VideoSilhouetteOverlay';
+import ProfileSetupModal from '../components/ProfileSetupModal';
 
 // ─────────────────────────────────────────────────────────
 // DESIGN TOKENS
@@ -64,6 +67,9 @@ function scoreLabel(score: number): string {
 export default function RidesPage() {
   const navigate = useNavigate();
 
+  // Profile setup
+  const [showProfileSetup, setShowProfileSetup] = useState(() => !isProfileComplete());
+
   // Log form state
   const [showLogForm, setShowLogForm] = useState(false);
   const [logNote, setLogNote] = useState('');
@@ -116,7 +122,7 @@ export default function RidesPage() {
     const ride: StoredRide = {
       id: `stored-${Date.now()}`,
       date: new Date().toISOString().split('T')[0],
-      horse: 'Allegra',
+      horse: getUserProfile().horseName || 'Your Horse',
       type: logType,
       duration: parseInt(logDuration, 10) || 45,
       videoFileName: videoFile.name,
@@ -185,16 +191,40 @@ export default function RidesPage() {
   return (
     <div style={{ background: COLORS.parchment, minHeight: '100%' }}>
 
+      {/* ── Profile Setup Modal (first visit) ──────────────── */}
+      {showProfileSetup && (
+        <ProfileSetupModal onComplete={() => setShowProfileSetup(false)} />
+      )}
+
       {/* ── HEADER ─────────────────────────────────────────── */}
       <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${COLORS.border}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontFamily: FONTS.heading, fontSize: '26px', fontWeight: 400, color: COLORS.charcoal }}>
-              Ride Analysis
-            </div>
-            <div style={{ fontFamily: FONTS.mono, fontSize: '11px', color: COLORS.muted }}>
-              AI-powered biomechanics
-            </div>
+            {(() => {
+              const profile = getUserProfile();
+              const hour = new Date().getHours();
+              const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+              const name = profile.firstName || '';
+              return name ? (
+                <>
+                  <div style={{ fontFamily: FONTS.body, fontSize: '13px', color: COLORS.muted, marginBottom: '2px' }}>
+                    {greeting}, {name}
+                  </div>
+                  <div style={{ fontFamily: FONTS.heading, fontSize: '26px', fontWeight: 400, color: COLORS.charcoal }}>
+                    Ride Analysis
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontFamily: FONTS.heading, fontSize: '26px', fontWeight: 400, color: COLORS.charcoal }}>
+                    Ride Analysis
+                  </div>
+                  <div style={{ fontFamily: FONTS.mono, fontSize: '11px', color: COLORS.muted }}>
+                    AI-powered biomechanics
+                  </div>
+                </>
+              );
+            })()}
           </div>
           {videoFile && (
             <button
@@ -385,6 +415,11 @@ export default function RidesPage() {
                 />
               )}
 
+              {/* Silhouette overlay — visible when analysis is complete */}
+              {isDone && result && (
+                <VideoSilhouetteOverlay biometrics={result.biometrics} />
+              )}
+
               {/* ── Premium Progress Overlay ─────────────────── */}
               {isAnalyzing && (
                 <div style={{
@@ -466,24 +501,21 @@ export default function RidesPage() {
               </div>
             )}
 
-            {/* ── Results: Biometrics Panel (6 Gauges) ─────── */}
+            {/* ── Results Panel ─────────────────────────────── */}
             {isDone && (
               <div style={{
                 padding: '20px',
                 animation: 'slideUp 0.5s ease',
               }}>
                 <div style={{
-                  fontFamily: FONTS.heading, fontSize: '17px', color: COLORS.charcoal,
-                  marginBottom: '4px',
-                }}>
-                  Biomechanics Analysis
-                </div>
-                <div style={{
                   fontFamily: FONTS.mono, fontSize: '10px', color: COLORS.muted,
                   marginBottom: '16px',
                 }}>
                   {result.frameCount} frames analyzed
                 </div>
+
+                {/* ── Layer 1: Your Position ─────────────────── */}
+                <LayerHeader icon="🧍" title="Your Position" subtitle="Movement & Biomechanics" />
 
                 {/* 6 Radial Gauges — 2×3 grid */}
                 <div style={{
@@ -503,6 +535,24 @@ export default function RidesPage() {
                       <RadialGauge key={key} value={val} label={label} />
                     );
                   })}
+                </div>
+
+                {/* ── Layer 2: Riding Quality ────────────────── */}
+                <div style={{ marginTop: '8px', marginBottom: '20px' }}>
+                  <LayerHeader icon="🎯" title="Riding Quality" subtitle="The Training Scales" />
+
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+                    gap: '12px',
+                  }}>
+                    {(() => {
+                      const qualities = computeRidingQualities(result.biometrics);
+                      const qualityColors = ['#C9A96E', '#7D9B76', '#8C5A3C', '#C4714A', '#6B7FA3', '#B5A898'];
+                      return qualities.map((q, i) => (
+                        <RadialGauge key={q.name} value={q.score} label={q.name} color={qualityColors[i]} />
+                      ));
+                    })()}
+                  </div>
                 </div>
 
                 {/* ── Insights Summary Card ──────────────────── */}
@@ -556,11 +606,12 @@ export default function RidesPage() {
           <div
             onClick={() => fileInputRef.current?.click()}
             style={{
-              background: COLORS.cardBg, borderRadius: '20px',
-              padding: '32px 24px', textAlign: 'center',
-              boxShadow: '0 2px 16px rgba(26,20,14,0.06)',
-              border: '2px dashed rgba(201,169,110,0.35)',
+              position: 'relative',
+              borderRadius: '20px',
+              height: 220,
+              overflow: 'hidden',
               cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(26,20,14,0.12)',
             }}
           >
             <input
@@ -570,38 +621,52 @@ export default function RidesPage() {
               onChange={handleFileChange}
               style={{ display: 'none' }}
             />
+            {/* Background image */}
+            <img
+              src={`${import.meta.env.BASE_URL}hero.jpg`}
+              alt=""
+              style={{
+                position: 'absolute', inset: 0,
+                width: '100%', height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center 40%',
+              }}
+            />
+            {/* Dark gradient overlay */}
             <div style={{
-              width: 56, height: 56, borderRadius: '50%',
-              background: 'linear-gradient(135deg, rgba(201,169,110,0.12) 0%, rgba(140,90,60,0.08) 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 14px',
-              border: '1.5px solid rgba(201,169,110,0.2)',
-            }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="4" width="18" height="16" rx="3" stroke={COLORS.champagne} strokeWidth="1.5" fill="none" />
-                <path d="M10 8.5V15.5L16 12L10 8.5Z" fill={COLORS.champagne} />
-              </svg>
-            </div>
-            <div style={{ fontFamily: FONTS.heading, fontSize: '20px', color: COLORS.charcoal, marginBottom: '6px' }}>
-              Analyze Your Ride
-            </div>
-            <div style={{ fontFamily: FONTS.body, fontSize: '13px', color: '#7A6B5D', lineHeight: 1.5, maxWidth: 260, margin: '0 auto 16px' }}>
-              Upload a riding video and Cadence will analyze your position, balance, and biomechanics in real time.
-            </div>
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(to bottom, rgba(20,14,8,0.15) 0%, rgba(20,14,8,0.75) 100%)',
+              pointerEvents: 'none',
+            }} />
+            {/* Content */}
             <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: COLORS.cognac, color: COLORS.parchment,
-              borderRadius: '14px', padding: '11px 24px',
-              fontSize: '14px', fontWeight: 600, fontFamily: FONTS.body,
+              position: 'absolute', bottom: 20, left: 20, right: 20,
             }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M12 4v12M6 10l6-6 6 6" stroke={COLORS.parchment} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M4 18h16" stroke={COLORS.parchment} strokeWidth="2" strokeLinecap="round" />
-              </svg>
-              Upload Session
-            </div>
-            <div style={{ fontFamily: FONTS.mono, fontSize: '10px', color: COLORS.muted, marginTop: 12 }}>
-              MP4 or MOV · Landscape recommended
+              <div style={{
+                fontFamily: FONTS.heading, fontSize: '22px', color: COLORS.parchment,
+                marginBottom: '6px',
+                textShadow: '0 1px 6px rgba(0,0,0,0.3)',
+              }}>
+                Analyze Your Ride
+              </div>
+              <div style={{
+                fontFamily: FONTS.body, fontSize: '12px', color: 'rgba(250,247,243,0.75)',
+                lineHeight: 1.5, marginBottom: '14px', maxWidth: 260,
+              }}>
+                Upload a riding video and Cadence will analyze your position, balance, and biomechanics.
+              </div>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                background: COLORS.cognac, color: COLORS.parchment,
+                borderRadius: '14px', padding: '10px 22px',
+                fontSize: '13px', fontWeight: 600, fontFamily: FONTS.body,
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 4v12M6 10l6-6 6 6" stroke={COLORS.parchment} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M4 18h16" stroke={COLORS.parchment} strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                Upload Session
+              </div>
             </div>
           </div>
         </div>
@@ -665,12 +730,28 @@ export default function RidesPage() {
 }
 
 // ─────────────────────────────────────────────────────────
+// LAYER HEADER COMPONENT
+// ─────────────────────────────────────────────────────────
+
+function LayerHeader({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+      <span style={{ fontSize: 20 }}>{icon}</span>
+      <div>
+        <div style={{ fontFamily: FONTS.heading, fontSize: 17, color: COLORS.charcoal }}>{title}</div>
+        <div style={{ fontFamily: FONTS.mono, fontSize: 10, color: COLORS.muted }}>{subtitle}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
 // RADIAL GAUGE COMPONENT
 // ─────────────────────────────────────────────────────────
 
-function RadialGauge({ value, label }: { value: number; label: string }) {
+function RadialGauge({ value, label, color: fixedColor }: { value: number; label: string; color?: string }) {
   const pct = Math.round(value * 100);
-  const color = scoreColor(value);
+  const color = fixedColor || scoreColor(value);
   const r = 28;
   const circumference = 2 * Math.PI * r;
   const offset = circumference * (1 - value);
