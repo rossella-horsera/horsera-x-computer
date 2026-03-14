@@ -4,13 +4,29 @@ import CadenceFAB from './CadenceFAB';
 import { CadenceProvider, useCadence } from '../../context/CadenceContext';
 import { getUserProfile } from '../../lib/userProfile';
 import ProfileSettingsPanel from '../ProfileSettingsPanel';
+import { safeStorage } from '../../lib/safeStorage';
+
+/** Profile avatar — shows photo if available, otherwise initials */
+function ProfileAvatar({ initial }: { initial: string }) {
+  const photo = safeStorage.getItem('horsera_profile_photo');
+  if (photo) {
+    return (
+      <img
+        src={photo}
+        alt="Profile"
+        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+      />
+    );
+  }
+  return <span style={{ fontSize: '13px', fontWeight: 600, color: '#FAF7F3', fontFamily: "'DM Sans', sans-serif", lineHeight: 1 }}>{initial}</span>;
+}
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
 function AppShellInner({ children }: AppShellProps) {
-  const { openCadence } = useCadence();
+  const { openCadence, isStreaming, speechState } = useCadence();
   const [showSettings, setShowSettings] = useState(false);
   const profile = getUserProfile();
   const initial = profile.firstName ? profile.firstName[0].toUpperCase() : '?';
@@ -98,16 +114,21 @@ function AppShellInner({ children }: AppShellProps) {
           onClick={() => setShowSettings(true)}
           style={{
             position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
-            width: 30, height: 30, borderRadius: '50%',
+            width: 32, height: 32,
+            minWidth: 32, minHeight: 32,
+            borderRadius: '50%',
             background: '#8C5A3C', color: '#FAF7F3', border: 'none',
             cursor: 'pointer', display: 'flex', alignItems: 'center',
             justifyContent: 'center', fontSize: '13px', fontWeight: 600,
             fontFamily: "'DM Sans', sans-serif",
-            paddingTop: 'env(safe-area-inset-top, 0px)',
+            padding: 0,
+            flexShrink: 0,
+            overflow: 'hidden',
           }}
           aria-label="Profile settings"
+          id="profile-avatar-btn"
         >
-          {initial}
+          <ProfileAvatar initial={initial} />
         </button>
       </header>
 
@@ -124,7 +145,11 @@ function AppShellInner({ children }: AppShellProps) {
       </main>
 
       <BottomNav />
-      <CadenceFAB onClick={openCadence} />
+      <CadenceFAB
+        onClick={openCadence}
+        isActive={isStreaming}
+        isListening={speechState === 'listening'}
+      />
     </div>
   );
 }
