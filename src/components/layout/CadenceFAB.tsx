@@ -77,43 +77,113 @@ export default function CadenceFAB({ onClick }: CadenceFABProps) {
           pointerEvents: 'none',
         }} />
 
-        {/* Waveform icon — three bars pulsing independently */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '3.5px',
-          animation: 'cadence-breathe 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        }}>
-          {/* Left bar — shorter, slower pulse */}
-          <div style={{
-            width: '3.5px',
-            height: '10px',
-            borderRadius: '2px',
-            background: 'linear-gradient(180deg, #E2C384 0%, #C9A96E 100%)',
-            boxShadow: '0 0 6px rgba(201,169,110,0.35)',
-            animation: 'cadence-bar-left 2.8s ease-in-out infinite',
-          }} />
-          {/* Center bar — tallest, slightly different timing */}
-          <div style={{
-            width: '3.5px',
-            height: '16px',
-            borderRadius: '2px',
-            background: 'linear-gradient(180deg, #E2C384 0%, #C9A96E 100%)',
-            boxShadow: '0 0 8px rgba(201,169,110,0.4)',
-            animation: 'cadence-bar-center 2.2s ease-in-out infinite',
-          }} />
-          {/* Right bar — medium height, offset timing */}
-          <div style={{
-            width: '3.5px',
-            height: '12px',
-            borderRadius: '2px',
-            background: 'linear-gradient(180deg, #E2C384 0%, #C9A96E 100%)',
-            boxShadow: '0 0 6px rgba(201,169,110,0.35)',
-            animation: 'cadence-bar-right 3.2s ease-in-out infinite',
-          }} />
-        </div>
+        {/* Organic waveform / flame icon — alive, intelligent, warm */}
+        <CadenceIcon size={28} />
       </button>
+    </div>
+  );
+}
+
+/**
+ * CadenceIcon — flowing organic waveform/flame-inspired icon.
+ * 5 rounded bars of varying heights, each animated independently
+ * for an alive, breathing feel. Subtle overall scale+opacity breathe.
+ *
+ * Works at 28px (nav/FAB) and 20px (drawer header circle).
+ * The <style> tag injects scoped keyframes on first render.
+ */
+export function CadenceIcon({ size = 28 }: { size?: number }) {
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        gap: `${size * 0.09}px`,
+        animation: 'cadence-icon-breathe 3s ease-in-out infinite',
+      }}
+      aria-hidden="true"
+    >
+      {/* Bar 1 — leftmost, shorter, softer */}
+      <div style={{
+        width: `${size * 0.115}px`,
+        height: `${size * 0.46}px`,
+        borderRadius: `${size * 0.058}px`,
+        background: 'linear-gradient(180deg, #DFBF74 0%, #A87D4A 100%)',
+        opacity: 0.65,
+        transformOrigin: 'bottom center',
+        animation: 'cadence-wv-0 2.9s ease-in-out infinite',
+      }} />
+      {/* Bar 2 */}
+      <div style={{
+        width: `${size * 0.115}px`,
+        height: `${size * 0.64}px`,
+        borderRadius: `${size * 0.058}px`,
+        background: 'linear-gradient(180deg, #EACF80 0%, #C9A96E 100%)',
+        opacity: 0.85,
+        transformOrigin: 'bottom center',
+        animation: 'cadence-wv-1 2.1s ease-in-out infinite',
+      }} />
+      {/* Bar 3 — center, tallest */}
+      <div style={{
+        width: `${size * 0.13}px`,
+        height: `${size * 0.82}px`,
+        borderRadius: `${size * 0.065}px`,
+        background: 'linear-gradient(180deg, #F0D888 0%, #C9A96E 60%, #A07040 100%)',
+        opacity: 1,
+        transformOrigin: 'bottom center',
+        animation: 'cadence-wv-2 1.8s ease-in-out infinite',
+        boxShadow: `0 0 ${size * 0.25}px rgba(201,169,110,0.4)`,
+      }} />
+      {/* Bar 4 */}
+      <div style={{
+        width: `${size * 0.115}px`,
+        height: `${size * 0.68}px`,
+        borderRadius: `${size * 0.058}px`,
+        background: 'linear-gradient(180deg, #EACF80 0%, #C9A96E 100%)',
+        opacity: 0.85,
+        transformOrigin: 'bottom center',
+        animation: 'cadence-wv-3 2.5s ease-in-out infinite',
+      }} />
+      {/* Bar 5 — rightmost, shortest */}
+      <div style={{
+        width: `${size * 0.115}px`,
+        height: `${size * 0.42}px`,
+        borderRadius: `${size * 0.058}px`,
+        background: 'linear-gradient(180deg, #DFBF74 0%, #A87D4A 100%)',
+        opacity: 0.6,
+        transformOrigin: 'bottom center',
+        animation: 'cadence-wv-4 3.1s ease-in-out infinite',
+      }} />
+
+      <style>{`
+        @keyframes cadence-wv-0 {
+          0%, 100% { transform: scaleY(0.55); }
+          50%       { transform: scaleY(1.0); }
+        }
+        @keyframes cadence-wv-1 {
+          0%, 100% { transform: scaleY(0.6); }
+          45%       { transform: scaleY(1.0); }
+        }
+        @keyframes cadence-wv-2 {
+          0%, 100% { transform: scaleY(0.58); }
+          40%       { transform: scaleY(1.0); }
+        }
+        @keyframes cadence-wv-3 {
+          0%, 100% { transform: scaleY(0.65); }
+          55%       { transform: scaleY(1.0); }
+        }
+        @keyframes cadence-wv-4 {
+          0%, 100% { transform: scaleY(0.5); }
+          50%       { transform: scaleY(1.0); }
+        }
+        @keyframes cadence-icon-breathe {
+          0%, 100% { transform: scale(0.97); opacity: 0.88; }
+          50%       { transform: scale(1.0);  opacity: 1.0; }
+        }
+      `}</style>
     </div>
   );
 }

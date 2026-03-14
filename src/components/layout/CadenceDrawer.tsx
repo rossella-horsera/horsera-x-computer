@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import React from 'react';
 import { getUserProfile } from '../../lib/userProfile';
+import { CadenceIcon } from './CadenceFAB';
 
 interface Message {
   role: 'cadence' | 'rider';
@@ -30,6 +31,22 @@ function renderMarkdown(text: string): string {
     .replace(/\n/g, '<br/>');
 }
 
+// ─── Web Speech API — ambient type declarations ───────────────────────────────
+type SpeechState = 'idle' | 'listening' | 'done';
+
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
+
+function getSpeechRecognitionClass(): (new () => SpeechRecognition) | null {
+  if (typeof window === 'undefined') return null;
+  // Works on Chrome (SpeechRecognition) and iOS Safari (webkitSpeechRecognition)
+  return (window.SpeechRecognition || window.webkitSpeechRecognition) ?? null;
+}
+
 interface CadenceDrawerProps {
   open: boolean;
   onClose: () => void;
@@ -49,7 +66,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
+  const [speechState, setSpeechState] = useState<SpeechState>('idle');
   const [comingSoonMsg, setComingSoonMsg] = useState<string | null>(null);
   const comingSoonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -57,6 +74,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingImage, setPendingImage] = useState<{ dataUrl: string; name: string } | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -68,6 +86,15 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
         .then(r => r.json())
         .then(setUsage)
         .catch(() => {});
+    }
+  }, [open]);
+
+  // Abort any active recognition when drawer closes
+  useEffect(() => {
+    if (!open && recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
+      recognitionRef.current = null;
+      setSpeechState('idle');
     }
   }, [open]);
 
@@ -183,9 +210,71 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
     setPendingImage({ dataUrl, name: file.name });
   }, [showComingSoon]);
 
+  // ─── Voice input — Web Speech API (Chrome + iOS Safari webkit prefix) ─────────
   const toggleRecording = useCallback(async () => {
-    showComingSoon('Voice input coming soon');
-  }, [showComingSoon]);
+    const SpeechRecognitionClass = getSpeechRecognitionClass();
+
+    // Graceful fallback: if no Speech API, show the toast
+    if (!SpeechRecognitionClass) {
+      showComingSoon('Voice input coming soon');
+      return;
+    }
+
+    // If already listening, stop the current session
+    if (speechState === 'listening') {
+      try { recognitionRef.current?.stop(); } catch {}
+      return;
+    }
+
+    // Start a new recognition session
+    try {
+      const recognition = new SpeechRecognitionClass();
+      recognitionRef.current = recognition;
+
+      recognition.continuous = false;   // single utterance
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      recognition.maxAlternatives = 1;
+
+      setSpeechState('listening');
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = event.results[0]?.[0]?.transcript?.trim() ?? '';
+        if (transcript) {
+          // Fill the input so the rider can review/edit before sending
+          setInput(prev => prev ? `${prev} ${transcript}` : transcript);
+        }
+        setSpeechState('done');
+        // Brief "done" glow, then back to idle
+        setTimeout(() => setSpeechState('idle'), 700);
+      };
+
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+        if (event.error === 'no-speech') {
+          showComingSoon('No speech detected — try again');
+        } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          showComingSoon('Microphone access denied');
+        } else if (event.error !== 'aborted') {
+          showComingSoon('Voice input unavailable');
+        }
+        setSpeechState('idle');
+        recognitionRef.current = null;
+      };
+
+      recognition.onend = () => {
+        // If recognition ended without a result (e.g. silence), reset
+        setSpeechState(prev => prev === 'listening' ? 'idle' : prev);
+        recognitionRef.current = null;
+      };
+
+      recognition.start();
+    } catch {
+      showComingSoon('Voice input unavailable');
+      setSpeechState('idle');
+    }
+  }, [speechState, showComingSoon]);
+
+  const isRecording = speechState === 'listening';
 
   if (!open) return null;
 
@@ -196,13 +285,16 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '12px', paddingBottom: '4px' }}>
           <div style={{ width: '36px', height: '4px', background: '#EDE7DF', borderRadius: '2px' }} />
         </div>
+
+        {/* ── Drawer header: new Cadence icon ── */}
         <div style={{ padding: '12px 20px 14px', borderBottom: '1px solid #EDE7DF', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1C1510', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2.5px' }}>
-              <div style={{ width: '2.5px', height: '8px', borderRadius: '1.5px', background: 'linear-gradient(180deg, #E2C384, #C9A96E)' }} />
-              <div style={{ width: '2.5px', height: '12px', borderRadius: '1.5px', background: 'linear-gradient(180deg, #E2C384, #C9A96E)' }} />
-              <div style={{ width: '2.5px', height: '10px', borderRadius: '1.5px', background: 'linear-gradient(180deg, #E2C384, #C9A96E)' }} />
-            </div>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '50%',
+            background: '#1C1510',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <CadenceIcon size={20} />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '15px', fontWeight: 600, color: '#1A140E' }}>Cadence</div>
@@ -215,19 +307,18 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
           )}
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B5A898', fontSize: '20px', lineHeight: 1, padding: '4px' }}>×</button>
         </div>
+
         {rateLimitMsg && (
           <div style={{ padding: '10px 20px', background: 'rgba(196,113,74,0.08)', borderBottom: '1px solid rgba(196,113,74,0.15)', fontSize: '12px', color: '#C4714A', fontFamily: "'DM Sans', sans-serif", textAlign: 'center' }}>{rateLimitMsg}</div>
         )}
+
+        {/* ── Messages ── */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {messages.map((msg, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'rider' ? 'flex-end' : 'flex-start' }}>
               {msg.role === 'cadence' && (
                 <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#1C1510', flexShrink: 0, marginRight: 8, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5px' }}>
-                    <div style={{ width: '2px', height: '5px', borderRadius: '1px', background: '#C9A96E' }} />
-                    <div style={{ width: '2px', height: '8px', borderRadius: '1px', background: '#C9A96E' }} />
-                    <div style={{ width: '2px', height: '6px', borderRadius: '1px', background: '#C9A96E' }} />
-                  </div>
+                  <CadenceIcon size={14} />
                 </div>
               )}
               <div style={{ maxWidth: '78%', padding: '10px 14px', borderRadius: msg.role === 'rider' ? '16px 16px 4px 16px' : '4px 16px 16px 16px', background: msg.role === 'rider' ? '#8C5A3C' : '#F1F4FA', color: msg.role === 'rider' ? '#FAF7F3' : '#1A140E', fontSize: '13.5px', lineHeight: 1.55, fontFamily: "'DM Sans', sans-serif" }}>
@@ -239,11 +330,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
           {isStreaming && messages[messages.length - 1]?.role === 'rider' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#1C1510', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5px' }}>
-                  <div style={{ width: '2px', height: '5px', borderRadius: '1px', background: '#C9A96E' }} />
-                  <div style={{ width: '2px', height: '8px', borderRadius: '1px', background: '#C9A96E' }} />
-                  <div style={{ width: '2px', height: '6px', borderRadius: '1px', background: '#C9A96E' }} />
-                </div>
+                <CadenceIcon size={14} />
               </div>
               <div style={{ padding: '10px 14px', borderRadius: '4px 16px 16px 16px', background: '#F1F4FA', display: 'flex', gap: 4 }}>
                 {[0, 1, 2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#6B7FA3', animation: `bounce 1.2s ${i * 0.2}s infinite` }} />)}
@@ -252,6 +339,8 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
           )}
           <div ref={messagesEndRef} />
         </div>
+
+        {/* ── Suggested prompts ── */}
         {messages.length < 3 && (
           <div style={{ padding: '0 16px 8px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {suggestedPrompts.map((p, i) => (
@@ -259,9 +348,13 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
             ))}
           </div>
         )}
+
+        {/* ── Toast ── */}
         {comingSoonMsg && (
           <div style={{ position: 'fixed', bottom: '120px', left: '50%', transform: 'translateX(-50%)', background: '#1C1510', color: '#FAF7F3', padding: '8px 16px', borderRadius: '20px', fontSize: '12px', fontFamily: "'DM Sans', sans-serif", fontWeight: 500, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', zIndex: 90, animation: 'fadeInUp 0.2s ease', whiteSpace: 'nowrap' }}>{comingSoonMsg}</div>
         )}
+
+        {/* ── Input bar ── */}
         <div style={{ padding: '12px 16px 24px', borderTop: '1px solid #EDE7DF', display: 'flex', flexDirection: 'column', gap: 10, background: '#FAF7F3' }}>
           {pendingImage && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 10px', background: '#FFFFFF', border: '1.5px solid #EDE7DF', borderRadius: '14px' }}>
@@ -273,14 +366,41 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
             </div>
           )}
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-            <button onClick={toggleRecording} style={{ width: 40, height: 40, borderRadius: '50%', background: isRecording ? '#C4714A' : '#F0EBE4', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.15s ease' }}>
+            {/* Mic button — Cognac when listening, pulse animation */}
+            <button
+              onClick={toggleRecording}
+              aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
+              style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: isRecording ? '#8C5A3C' : '#F0EBE4',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'background 0.2s ease',
+                animation: isRecording ? 'mic-pulse 1.4s ease-out infinite' : 'none',
+              }}
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <rect x="8" y="2" width="8" height="12" rx="4" fill={isRecording ? '#FAF7F3' : '#7A6B5D'} />
                 <path d="M5 11C5 14.87 8.13 18 12 18C15.87 18 19 14.87 19 11" stroke={isRecording ? '#FAF7F3' : '#7A6B5D'} strokeWidth="1.5" strokeLinecap="round" />
                 <line x1="12" y1="18" x2="12" y2="22" stroke={isRecording ? '#FAF7F3' : '#7A6B5D'} strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </button>
-            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage(input, pendingImage?.dataUrl)} placeholder="Ask Cadence anything..." disabled={isStreaming} style={{ flex: 1, padding: '10px 14px', borderRadius: '12px', border: '1.5px solid #EDE7DF', background: '#FFFFFF', fontSize: '14px', color: '#1A140E', fontFamily: "'DM Sans', sans-serif", outline: 'none', opacity: isStreaming ? 0.6 : 1 }} />
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage(input, pendingImage?.dataUrl)}
+              placeholder={isRecording ? 'Listening\u2026' : 'Ask Cadence anything...'}
+              disabled={isStreaming}
+              style={{
+                flex: 1, padding: '10px 14px', borderRadius: '12px',
+                border: `1.5px solid ${isRecording ? 'rgba(140,90,60,0.5)' : '#EDE7DF'}`,
+                background: '#FFFFFF', fontSize: '14px', color: '#1A140E',
+                fontFamily: "'DM Sans', sans-serif", outline: 'none',
+                opacity: isStreaming ? 0.6 : 1,
+                transition: 'border-color 0.2s ease',
+              }}
+            />
             <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
             <button onClick={handlePickImage} style={{ width: 40, height: 40, borderRadius: '50%', background: '#F0EBE4', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -294,10 +414,16 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
             </button>
           </div>
         </div>
+
         <style>{`
           @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
           @keyframes blink { 0%, 100% { opacity: 0.5; } 50% { opacity: 0; } }
           @keyframes fadeInUp { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+          @keyframes mic-pulse {
+            0%   { box-shadow: 0 0 0 0   rgba(140,90,60,0.55); }
+            60%  { box-shadow: 0 0 0 10px rgba(140,90,60,0); }
+            100% { box-shadow: 0 0 0 0   rgba(140,90,60,0); }
+          }
         `}</style>
       </div>
     </>
