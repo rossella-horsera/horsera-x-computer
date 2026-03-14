@@ -187,7 +187,7 @@ async def cadence_chat(request: ChatRequest):
     def generate():
         try:
             with client.messages.stream(
-                model="claude-3-5-haiku-20241022",
+                model="claude_haiku_4_5",
                 max_tokens=512,
                 system=system_prompt,
                 messages=api_messages,

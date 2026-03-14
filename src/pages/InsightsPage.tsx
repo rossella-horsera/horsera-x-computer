@@ -135,7 +135,7 @@ function MetricSummaryRow({ metricKey, label, color, data }: {
   const trend = delta > 0.02 ? 'up' : delta < -0.02 ? 'down' : 'flat';
 
   const trendColor = trend === 'up' ? '#7D9B76' : trend === 'down' ? '#C4714A' : '#C9A96E';
-  const trendSymbol = trend === 'up' ? '\u2191' : trend === 'down' ? '\u2193' : '\u2192';
+  const trendSymbol = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', borderBottom: '1px solid #F0EBE4' }}>
@@ -145,7 +145,7 @@ function MetricSummaryRow({ metricKey, label, color, data }: {
           {label}
         </div>
         <div style={{ fontSize: '10px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}>
-          {latestPct}% \u00b7 <span style={{ color: trendColor }}>{trendSymbol} {Math.abs(deltaPct)}pts since Feb</span>
+          {latestPct}% · <span style={{ color: trendColor }}>{trendSymbol} {Math.abs(deltaPct)}pts since Feb</span>
         </div>
       </div>
       <SparkLine data={values} color={color} />
@@ -160,28 +160,28 @@ function PatternsTab() {
 
   const patterns = [
     {
-      icon: '\ud83d\udd01',
+      icon: '🔁',
       title: 'Right-rein drift',
-      detail: 'Your lower leg tends to drift forward on the right rein \u2014 visible in 4 of your last 5 rides.',
+      detail: 'Your lower leg tends to drift forward on the right rein — visible in 4 of your last 5 rides.',
       color: '#C4714A',
       tag: 'Persistent',
     },
     {
-      icon: '\u23f1',
+      icon: '⏱',
       title: 'Warm-up pattern',
       detail: 'Rein steadiness consistently improves in the second half of every ride.',
       color: '#C9A96E',
       tag: 'Consistent',
     },
     {
-      icon: '\u2713',
+      icon: '✓',
       title: 'Core is solid',
       detail: 'Core stability scores have been above 85% for 6 consecutive rides. This is mastered.',
       color: '#7D9B76',
       tag: 'Mastered',
     },
     {
-      icon: '\ud83d\udcc8',
+      icon: '📈',
       title: '4-week trajectory',
       detail: 'All 5 biometric areas have improved over the past 4 weeks. Lower leg shows the most growth (+17pts).',
       color: '#8C5A3C',
@@ -193,13 +193,13 @@ function PatternsTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 10px rgba(26,20,14,0.05)' }}>
         <div style={{ fontSize: '10px', fontWeight: 600, color: '#B5A898', letterSpacing: '0.14em', textTransform: 'uppercase', fontFamily: "'DM Sans', sans-serif", marginBottom: '12px' }}>
-          Ride Signals \u2014 Last {total} Rides
+          Ride Signals — Last {total} Rides
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           {[
-            { label: 'Improving', count: signalCounts.improving, color: '#7D9B76', symbol: '\u2191' },
-            { label: 'Consistent', count: signalCounts.consistent, color: '#C9A96E', symbol: '\u2192' },
-            { label: 'Needs work', count: signalCounts['needs-work'], color: '#C4714A', symbol: '\u2193' },
+            { label: 'Improving', count: signalCounts.improving, color: '#7D9B76', symbol: '↑' },
+            { label: 'Consistent', count: signalCounts.consistent, color: '#C9A96E', symbol: '→' },
+            { label: 'Needs work', count: signalCounts['needs-work'], color: '#C4714A', symbol: '↓' },
           ].map(({ label, count, color, symbol }) => (
             <div key={label} style={{ flex: 1, textAlign: 'center', background: '#FAF7F3', borderRadius: '10px', padding: '10px 4px' }}>
               <div style={{ fontSize: '20px', color, marginBottom: '2px' }}>{symbol}</div>
@@ -304,7 +304,7 @@ export default function InsightsPage() {
     { id: 'patterns', label: 'Patterns' },
   ];
 
-  // #60 \u2014 no data empty state
+  // #60 — no data empty state
   if (!hasRideData) {
     return (
       <div style={{
@@ -313,7 +313,7 @@ export default function InsightsPage() {
         alignItems: 'center', justifyContent: 'center',
         padding: '40px 20px',
       }}>
-        <div style={{ fontSize: '40px', marginBottom: '16px' }}>\ud83c\udfaf</div>
+        <div style={{ fontSize: '40px', marginBottom: '16px' }}>🎯</div>
         <h1 style={{
           fontFamily: "'Playfair Display', serif",
           fontSize: '22px', fontWeight: 400, color: '#1A140E',
@@ -354,7 +354,7 @@ export default function InsightsPage() {
               transition: 'all 0.15s',
             }}
           >
-            \u2139\ufe0f Glossary
+            ℹ️ Glossary
           </button>
         </div>
 
@@ -372,7 +372,7 @@ export default function InsightsPage() {
             {GLOSSARY_POSITION.map(g => (
               <div key={g.term} style={{ padding: '4px 0', borderBottom: '1px solid #F0EBE4' }}>
                 <span style={{ fontSize: '11px', fontWeight: 600, color: '#1A140E', fontFamily: "'DM Sans', sans-serif" }}>{g.term}</span>
-                <span style={{ fontSize: '10.5px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}> \u2014 {g.def}</span>
+                <span style={{ fontSize: '10.5px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}> — {g.def}</span>
               </div>
             ))}
             <div style={{ fontSize: '10px', fontWeight: 600, color: '#B5A898', letterSpacing: '0.14em', textTransform: 'uppercase', fontFamily: "'DM Sans', sans-serif", marginTop: '14px', marginBottom: '10px' }}>
@@ -384,7 +384,7 @@ export default function InsightsPage() {
             {GLOSSARY_QUALITY.map(g => (
               <div key={g.term} style={{ padding: '4px 0', borderBottom: '1px solid #F0EBE4' }}>
                 <span style={{ fontSize: '11px', fontWeight: 600, color: '#1A140E', fontFamily: "'DM Sans', sans-serif" }}>{g.term}</span>
-                <span style={{ fontSize: '10.5px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}> \u2014 {g.def}</span>
+                <span style={{ fontSize: '10.5px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}> — {g.def}</span>
               </div>
             ))}
           </div>
@@ -406,7 +406,7 @@ export default function InsightsPage() {
             {overallScore}%
           </span>
           <span style={{ fontSize: '10px', color: '#7D9B76', fontFamily: "'DM Sans', sans-serif" }}>
-            \u2191 4wk
+            ↑ 4wk
           </span>
         </div>
       </div>
@@ -442,7 +442,7 @@ export default function InsightsPage() {
         {activeTab === 'trends' && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2, marginTop: 4 }}>
-              <span style={{ fontSize: 20 }}>\ud83e\uddcd</span>
+              <span style={{ fontSize: 20 }}>🧍</span>
               <div>
                 <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: '#1A140E' }}>Your Position</div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#B5A898' }}>Movement Trends</div>
@@ -476,11 +476,11 @@ export default function InsightsPage() {
 
             <div style={{ background: '#FFFFFF', borderRadius: '16px', padding: '16px', boxShadow: '0 2px 10px rgba(26,20,14,0.05)' }}>
               <div style={{ fontSize: '10px', fontWeight: 600, color: '#B5A898', letterSpacing: '0.14em', textTransform: 'uppercase', fontFamily: "'DM Sans', sans-serif", marginBottom: '12px' }}>
-                Score Over Time (0\u2013100%)
+                Score Over Time (0–100%)
               </div>
               <TrendChart data={biometricsTrend} activeMetrics={activeMetrics} />
               <div style={{ fontSize: '9px', color: '#B5A898', fontFamily: "'DM Mono', monospace", marginTop: '8px', textAlign: 'right' }}>
-                AI-assisted \u00b7 Sample data
+                AI-assisted · Sample data
               </div>
             </div>
 
@@ -494,7 +494,7 @@ export default function InsightsPage() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2, marginTop: 12 }}>
-              <span style={{ fontSize: 20 }}>\ud83c\udfaf</span>
+              <span style={{ fontSize: 20 }}>🎯</span>
               <div>
                 <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 17, color: '#1A140E' }}>Riding Quality</div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#B5A898' }}>The Scales Over Time</div>
@@ -511,7 +511,7 @@ export default function InsightsPage() {
                   const delta = q.score - firstQ[i].score;
                   const trend = delta > 0.02 ? 'up' : delta < -0.02 ? 'down' : 'flat';
                   const trendColor = trend === 'up' ? '#7D9B76' : trend === 'down' ? '#C4714A' : '#C9A96E';
-                  const trendSymbol = trend === 'up' ? '\u2191' : trend === 'down' ? '\u2193' : '\u2192';
+                  const trendSymbol = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '→';
                   const pct = Math.round(q.score * 100);
                   return (
                     <div key={q.name} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', borderBottom: i < latestQ.length - 1 ? '1px solid #F0EBE4' : 'none' }}>
@@ -521,7 +521,7 @@ export default function InsightsPage() {
                           {q.name}
                         </div>
                         <div style={{ fontSize: '10px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}>
-                          {pct}% \u00b7 <span style={{ color: trendColor }}>{trendSymbol} {Math.abs(Math.round(delta * 100))}pts</span>
+                          {pct}% · <span style={{ color: trendColor }}>{trendSymbol} {Math.abs(Math.round(delta * 100))}pts</span>
                         </div>
                       </div>
                       <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '14px', fontWeight: 500, color: QUALITY_COLORS[i] }}>
