@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getUserProfile } from '../lib/userProfile';
 
 // ─── Milestone path node ───────────────────────────────────────────────────────
 
@@ -8,13 +9,24 @@ interface PathNode {
   state: 'done' | 'active' | 'future' | 'far';
 }
 
+// Progression maps are discipline-specific.
+// These follow the classical Training Scale (common to all English disciplines),
+// mapped to Horsera's milestone framework. Full discipline branching arrives in V2.
 const journeyNodes: PathNode[] = [
-  { label: 'Foundation',  sublabel: 'Balance & rhythm',        state: 'done'   },
-  { label: 'Connection',  sublabel: 'Rein contact & softness', state: 'active' },
-  { label: 'Impulsion',   sublabel: 'Energy & forward',        state: 'future' },
-  { label: 'Straightness',sublabel: 'Alignment & symmetry',    state: 'future' },
-  { label: 'Collection',  sublabel: 'Elevation & lightness',   state: 'far'    },
+  { label: 'Foundation',   sublabel: 'Balance & rhythm',        state: 'done'   },
+  { label: 'Connection',   sublabel: 'Rein contact & softness', state: 'active' },
+  { label: 'Impulsion',    sublabel: 'Energy & forward',        state: 'future' },
+  { label: 'Straightness', sublabel: 'Alignment & symmetry',    state: 'future' },
+  { label: 'Collection',   sublabel: 'Elevation & lightness',   state: 'far'    },
 ];
+
+const DISCIPLINE_LABELS: Record<string, string> = {
+  'usdf-dressage':        'USDF Dressage',
+  'usdf':                 'USDF Dressage',
+  'pony-club':            'Pony Club',
+  'hunter-jumper':        'Hunter / Jumper',
+  'a-bit-of-everything':  'All-Round',
+};
 
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
@@ -22,6 +34,8 @@ export default function JourneyPage() {
   const [excited, setExcited] = useState(false);
   const [heartCount, setHeartCount] = useState(0);
   const [thanked, setThanked] = useState(false);
+  const profile = getUserProfile();
+  const disciplineLabel = DISCIPLINE_LABELS[profile.discipline] ?? 'Equestrian';
 
   const handleExcited = () => {
     if (thanked) return;
@@ -88,13 +102,29 @@ export default function JourneyPage() {
 
       {/* ─── Header eyebrow ─── */}
       <div style={{
-        fontSize: '10px', fontWeight: 600, letterSpacing: '0.18em',
-        textTransform: 'uppercase', color: '#C9A96E',
-        fontFamily: "'DM Sans', sans-serif",
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
         marginBottom: 20,
         animation: 'journey-fade-in 0.6s ease both',
       }}>
-        Your Journey
+        <div style={{
+          fontSize: '10px', fontWeight: 600, letterSpacing: '0.18em',
+          textTransform: 'uppercase', color: '#C9A96E',
+          fontFamily: "'DM Sans', sans-serif",
+        }}>
+          Your Journey
+        </div>
+        <div style={{
+          fontSize: '10px', color: 'rgba(181,168,152,0.8)',
+          fontFamily: "'DM Mono', monospace",
+          letterSpacing: '0.10em',
+          textTransform: 'uppercase',
+          background: 'rgba(201,169,110,0.08)',
+          border: '1px solid rgba(201,169,110,0.18)',
+          borderRadius: '20px',
+          padding: '3px 10px',
+        }}>
+          {disciplineLabel} · Training Scale
+        </div>
       </div>
 
       {/* ─── Floating icon ─── */}
@@ -311,7 +341,7 @@ export default function JourneyPage() {
             color: '#C4B8AC',
             fontStyle: 'italic',
           }}>
-            and beyond\u2026
+            and beyond…
           </div>
         </div>
       </div>
@@ -356,7 +386,7 @@ export default function JourneyPage() {
                 display: 'inline-block',
                 animation: excited ? 'journey-heart-pop 0.4s ease' : 'none',
               }}>
-                \uD83E\uDD0D
+                🤍
               </span>
               <span style={{
                 fontFamily: "'DM Sans', sans-serif",
@@ -378,7 +408,7 @@ export default function JourneyPage() {
             textAlign: 'center',
             animation: 'journey-fade-in 0.5s ease both',
           }}>
-            <div style={{ fontSize: '20px', marginBottom: 6 }}>\uD83E\uDD0E</div>
+            <div style={{ fontSize: '20px', marginBottom: 6 }}>🤎</div>
             <p style={{
               fontFamily: "'DM Sans', sans-serif",
               fontSize: '13px',
