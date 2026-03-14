@@ -6,9 +6,9 @@ import { generateInsights } from '../lib/poseAnalysis';
 import { mockRides, mockGoal } from '../data/mock';
 
 const signalConfig = {
-  improving:    { color: '#7D9B76', symbol: '↑', label: 'Improving' },
-  consistent:   { color: '#C9A96E', symbol: '→', label: 'Consistent' },
-  'needs-work': { color: '#C4714A', symbol: '↓', label: 'Needs work' },
+  improving:    { color: '#7D9B76', symbol: '\u2191', label: 'Improving' },
+  consistent:   { color: '#C9A96E', symbol: '\u2192', label: 'Consistent' },
+  'needs-work': { color: '#C4714A', symbol: '\u2193', label: 'Needs work' },
 };
 
 const biometricsDisplay = [
@@ -44,7 +44,7 @@ export default function RideDetailPage() {
   return (
     <div style={{ background: '#FAF7F3', minHeight: '100%' }}>
 
-      <div style={{ padding: '16px 20px 0' }}>
+      <div style={{ padding: '16px 20px 0', paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))' }}>
         <button
           onClick={() => navigate('/rides')}
           style={{
@@ -72,7 +72,7 @@ export default function RideDetailPage() {
           </div>
         </div>
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: '#B5A898', marginBottom: '20px' }}>
-          {ride.horse} · {ride.duration} min · {ride.type}
+          {ride.horse} \u00b7 {ride.duration} min \u00b7 {ride.type}
         </div>
       </div>
 
@@ -90,7 +90,7 @@ export default function RideDetailPage() {
           </div>
           {milestone && (
             <div style={{ fontSize: '11px', color: '#B5A898', fontFamily: "'DM Sans', sans-serif" }}>
-              {milestone.ridingQuality} · {milestone.performanceTasks[0]}
+              {milestone.ridingQuality} \u00b7 {milestone.performanceTasks[0]}
             </div>
           )}
         </div>
@@ -140,7 +140,7 @@ export default function RideDetailPage() {
                 Your Position
               </div>
               <div style={{ fontSize: '10px', color: '#6B7FA3', background: '#F1F4FA', padding: '3px 8px', borderRadius: '8px', fontFamily: "'DM Sans', sans-serif" }}>
-                AI-assisted · Sample Data
+                AI-assisted \u00b7 Sample Data
               </div>
             </div>
 
