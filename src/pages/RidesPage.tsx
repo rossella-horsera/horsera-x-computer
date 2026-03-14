@@ -12,9 +12,6 @@ import VideoSilhouetteOverlay from '../components/VideoSilhouetteOverlay';
 import ProfileSetupModal from '../components/ProfileSetupModal';
 
 // ─────────────────────────────────────────────────────────
-// DESIGN TOKENS
-// ─────────────────────────────────────────────────────────
-
 const COLORS = {
   parchment:  '#FAF7F3',
   cognac:     '#8C5A3C',
@@ -604,7 +601,9 @@ function RideDetailView({
       {/* ── Sticky Header ── */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12,
-        padding: '16px 20px', borderBottom: `1px solid ${COLORS.border}`,
+        padding: '16px 20px',
+        paddingTop: 'calc(16px + env(safe-area-inset-top, 0px))',
+        borderBottom: `1px solid ${COLORS.border}`,
         background: COLORS.parchment, position: 'sticky', top: 0, zIndex: 2,
         backdropFilter: 'blur(8px)',
       }}>
@@ -733,72 +732,52 @@ function RideDetailView({
                 { label: 'Horse', value: ride.horse },
               ].map(item => (
                 <div key={item.label}>
-                  <div style={{ fontFamily: FONTS.mono, fontSize: '9px', color: COLORS.muted, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 2 }}>
+                  <div style={{ fontFamily: FONTS.mono, fontSize: '9px', color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
                     {item.label}
                   </div>
-                  <div style={{ fontFamily: FONTS.body, fontSize: '12.5px', color: COLORS.charcoal, fontWeight: 500 }}>
+                  <div style={{ fontFamily: FONTS.body, fontSize: '13px', color: COLORS.charcoal, fontWeight: 500 }}>
                     {item.value}
                   </div>
                 </div>
               ))}
             </div>
 
-            <GaitBreakdown duration={ride.duration} />
-          </div>
-
-          {/* Reflection (if available) */}
-          {ride.reflection && (
+            {/* Signal chip */}
             <div style={{
-              marginTop: 10, background: COLORS.cardBg, borderRadius: 14,
-              padding: '14px 16px', border: `1px solid ${COLORS.border}`,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: `${signalConfig[ride.signal].color}14`,
+              border: `1px solid ${signalConfig[ride.signal].color}30`,
+              padding: '5px 10px', borderRadius: 20,
             }}>
-              <div style={{ fontFamily: FONTS.heading, fontSize: '13px', color: COLORS.charcoal, marginBottom: 6 }}>
-                Ride Notes
-              </div>
-              <div style={{ fontFamily: FONTS.body, fontSize: '12px', color: '#6B5E50', lineHeight: 1.55 }}>
-                {ride.reflection}
-              </div>
+              <span style={{ fontFamily: FONTS.mono, fontSize: 14, color: signalConfig[ride.signal].color }}>
+                {signalConfig[ride.signal].symbol}
+              </span>
+              <span style={{ fontFamily: FONTS.body, fontSize: '11px', fontWeight: 500, color: signalConfig[ride.signal].color }}>
+                {signalConfig[ride.signal].label}
+              </span>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* ── Riding Quality (Scales of Training) ── */}
+        {/* ── 7. GAIT BREAKDOWN ── */}
         <div style={{ padding: '20px 16px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <span style={{ fontFamily: FONTS.heading, fontSize: 17, color: COLORS.charcoal }}>Riding Quality</span>
-            <span style={{ fontFamily: FONTS.mono, fontSize: 10, color: COLORS.muted }}>Training Scales</span>
+          <GaitBreakdown duration={ride.duration} />
+        </div>
+
+        {/* ── 8. RIDING QUALITIES ── */}
+        <div style={{ padding: '20px 16px 0' }}>
+          <div style={{ fontFamily: FONTS.heading, fontSize: 15, color: COLORS.charcoal, marginBottom: 10 }}>
+            Riding Quality
           </div>
-          <div style={{
-            background: COLORS.cardBg, borderRadius: 16, padding: '14px 16px',
-            boxShadow: '0 2px 10px rgba(26,20,14,0.05)',
-          }}>
+          <div style={{ background: COLORS.cardBg, borderRadius: 16, padding: '14px 16px', boxShadow: '0 2px 10px rgba(26,20,14,0.05)' }}>
             {qualities.map((q, i) => {
-              const qualityColors = ['#C9A96E', '#7D9B76', '#8C5A3C', '#C4714A', '#6B7FA3', '#B5A898'];
-              const c = qualityColors[i];
+              const qColor = ['#C9A96E','#7D9B76','#8C5A3C','#C4714A','#6B7FA3','#B5A898'][i];
               const pct = Math.round(q.score * 100);
               return (
-                <div key={q.name} style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 0',
-                  borderBottom: i < qualities.length - 1 ? `1px solid ${COLORS.softBg}` : 'none',
-                }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: c, flexShrink: 0 }} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: FONTS.body, fontSize: '12.5px', fontWeight: 500, color: COLORS.charcoal }}>
-                      {q.name}
-                    </div>
-                    <div style={{ fontFamily: FONTS.body, fontSize: '10px', color: COLORS.muted }}>
-                      {q.qualityNote}
-                    </div>
-                  </div>
-                  <div style={{
-                    height: 4, width: 60, background: COLORS.softBg, borderRadius: 2, overflow: 'hidden', marginRight: 8,
-                  }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: c, borderRadius: 2 }} />
-                  </div>
-                  <div style={{ fontFamily: FONTS.mono, fontSize: '13px', fontWeight: 700, color: c, minWidth: 24, textAlign: 'right' }}>
-                    {pct}
-                  </div>
+                <div key={q.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: i < qualities.length - 1 ? '1px solid #F0EBE4' : 'none' }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: qColor, flexShrink: 0 }} />
+                  <div style={{ flex: 1, fontFamily: FONTS.body, fontSize: '12px', color: COLORS.charcoal, fontWeight: 500 }}>{q.name}</div>
+                  <div style={{ fontFamily: FONTS.mono, fontSize: '13px', fontWeight: 600, color: qColor }}>{pct}</div>
                 </div>
               );
             })}
@@ -811,1008 +790,729 @@ function RideDetailView({
 }
 
 // ─────────────────────────────────────────────────────────
+// ADD RIDE FAB (#55) — Floating pill button — CARD 55 + 57
+// ─────────────────────────────────────────────────────────
+
+function AddRideFAB({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label="Add a new ride"
+      style={{
+        position: 'fixed',
+        bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
+        right: '20px',
+        height: 48,
+        paddingLeft: 20,
+        paddingRight: 20,
+        borderRadius: 24,
+        background: COLORS.cognac,
+        border: 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        boxShadow: '0 4px 20px rgba(140,90,60,0.35)',
+        zIndex: 50,
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.04)';
+        (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 24px rgba(140,90,60,0.45)';
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+        (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 20px rgba(140,90,60,0.35)';
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M12 5v14M5 12h14" stroke="#FAF7F3" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+      <span style={{ fontFamily: FONTS.body, fontSize: '14px', fontWeight: 600, color: '#FAF7F3' }}>
+        Add Ride
+      </span>
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// ADD RIDE MODAL SHEET (#57)
+// ─────────────────────────────────────────────────────────
+
+type RideType = 'training' | 'lesson' | 'mock-test' | 'hack';
+
+interface AddRideModalProps {
+  open: boolean;
+  onClose: () => void;
+  onAddRide: (data: {
+    type: RideType;
+    horse: string;
+    date: string;
+    duration: number;
+    notes: string;
+  }) => void;
+}
+
+function AddRideModal({ open, onClose, onAddRide }: AddRideModalProps) {
+  const [rideType, setRideType] = useState<RideType>('training');
+  const [horse, setHorse] = useState('');
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [duration, setDuration] = useState(45);
+  const [notes, setNotes] = useState('');
+
+  if (!open) return null;
+
+  const handleSubmit = () => {
+    if (!horse.trim()) return;
+    onAddRide({ type: rideType, horse: horse.trim(), date, duration, notes });
+    setHorse(''); setNotes('');
+    onClose();
+  };
+
+  const rideTypes: { value: RideType; label: string; emoji: string }[] = [
+    { value: 'training', label: 'Training', emoji: '🐎' },
+    { value: 'lesson', label: 'Lesson', emoji: '👩‍🏫' },
+    { value: 'mock-test', label: 'Mock Test', emoji: '📋' },
+    { value: 'hack', label: 'Hack', emoji: '🌳' },
+  ];
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(26,20,14,0.3)', zIndex: 60 }} />
+      <div style={{
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: '100%', maxWidth: '430px',
+        background: COLORS.parchment,
+        borderRadius: '28px 28px 0 0',
+        zIndex: 61,
+        padding: '0 0 env(safe-area-inset-bottom, 24px)',
+        boxShadow: '0 -8px 32px rgba(26,20,14,0.12)',
+        animation: 'slideUp 0.25s ease-out',
+      }}>
+        <style>{`@keyframes slideUp { from { transform: translateX(-50%) translateY(100%); } to { transform: translateX(-50%) translateY(0); } }`}</style>
+
+        {/* Handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 14, paddingBottom: 8 }}>
+          <div style={{ width: 36, height: 4, background: COLORS.border, borderRadius: 2 }} />
+        </div>
+
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 20px 16px' }}>
+          <span style={{ fontFamily: FONTS.heading, fontSize: '18px', color: COLORS.charcoal }}>New Ride</span>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: COLORS.muted, lineHeight: 1 }}>×</button>
+        </div>
+
+        <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '65vh', overflowY: 'auto', paddingBottom: 20 }}>
+
+          {/* Type selector */}
+          <div>
+            <div style={{ fontFamily: FONTS.mono, fontSize: '9px', color: COLORS.muted, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Ride type</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {rideTypes.map(rt => (
+                <button
+                  key={rt.value}
+                  onClick={() => setRideType(rt.value)}
+                  style={{
+                    padding: '10px', borderRadius: 12,
+                    border: rideType === rt.value ? `2px solid ${COLORS.cognac}` : `1.5px solid ${COLORS.border}`,
+                    background: rideType === rt.value ? `${COLORS.cognac}10` : COLORS.cardBg,
+                    cursor: 'pointer', fontFamily: FONTS.body, fontSize: '13px',
+                    color: rideType === rt.value ? COLORS.cognac : COLORS.charcoal,
+                    fontWeight: rideType === rt.value ? 600 : 400,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span style={{ fontSize: '16px' }}>{rt.emoji}</span>
+                  {rt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Horse name */}
+          <div>
+            <div style={{ fontFamily: FONTS.mono, fontSize: '9px', color: COLORS.muted, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Horse</div>
+            <input
+              type="text" value={horse}
+              onChange={e => setHorse(e.target.value)}
+              placeholder="e.g. Caviar"
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${COLORS.border}`, background: COLORS.cardBg, fontSize: '14px', fontFamily: FONTS.body, color: COLORS.charcoal, outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {/* Date + Duration row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <div style={{ fontFamily: FONTS.mono, fontSize: '9px', color: COLORS.muted, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Date</div>
+              <input
+                type="date" value={date}
+                onChange={e => setDate(e.target.value)}
+                style={{ width: '100%', padding: '11px 10px', borderRadius: 10, border: `1.5px solid ${COLORS.border}`, background: COLORS.cardBg, fontSize: '13px', fontFamily: FONTS.body, color: COLORS.charcoal, outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <div style={{ fontFamily: FONTS.mono, fontSize: '9px', color: COLORS.muted, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Duration (min)</div>
+              <input
+                type="number" value={duration} min={5} max={300}
+                onChange={e => setDuration(Number(e.target.value))}
+                style={{ width: '100%', padding: '11px 10px', borderRadius: 10, border: `1.5px solid ${COLORS.border}`, background: COLORS.cardBg, fontSize: '14px', fontFamily: FONTS.body, color: COLORS.charcoal, outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <div style={{ fontFamily: FONTS.mono, fontSize: '9px', color: COLORS.muted, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Notes <span style={{ color: COLORS.border }}>(optional)</span></div>
+            <textarea
+              value={notes} onChange={e => setNotes(e.target.value)}
+              placeholder="How did it go?"
+              rows={3}
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${COLORS.border}`, background: COLORS.cardBg, fontSize: '13px', fontFamily: FONTS.body, color: COLORS.charcoal, outline: 'none', resize: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {/* Submit */}
+          <button
+            onClick={handleSubmit}
+            disabled={!horse.trim()}
+            style={{
+              width: '100%', padding: '14px', borderRadius: 12,
+              background: horse.trim() ? COLORS.cognac : '#D4C9BC',
+              border: 'none', cursor: horse.trim() ? 'pointer' : 'default',
+              fontFamily: FONTS.body, fontSize: '14px', fontWeight: 600,
+              color: '#FAF7F3', transition: 'background 0.15s ease',
+            }}
+          >
+            Log Ride
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// UPLOAD SHEET (#58 / #59)
+// ─────────────────────────────────────────────────────────
+
+interface UploadSheetProps {
+  open: boolean;
+  onClose: () => void;
+  onVideoSelected: (file: File) => void;
+  ride: Ride | null;
+  storedRide: StoredRide | null;
+}
+
+function UploadSheet({ open, onClose, onVideoSelected, ride, storedRide }: UploadSheetProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [validationMsg, setValidationMsg] = useState<string | null>(null);
+
+  if (!open || !ride) return null;
+
+  const handleFile = (file: File) => {
+    setValidationMsg(null);
+
+    // #59 — format check
+    if (!ALLOWED_FORMATS.includes(file.type)) {
+      setValidationMsg('❌ Only MP4, MOV, or AVI files are supported for analysis.');
+      return;
+    }
+
+    // #59 — size warning (soft)
+    if (file.size > SIZE_WARN_MB * 1024 * 1024) {
+      setValidationMsg(`⚠️ File is large (${formatFileSize(file.size)}). Analysis may take a while. Tap again to confirm.`);
+      // still proceed — soft warning
+    }
+
+    onVideoSelected(file);
+    onClose();
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    handleFile(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  const dateStr = new Date(ride.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(26,20,14,0.35)', zIndex: 60 }} />
+      <div style={{
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: '100%', maxWidth: '430px',
+        background: COLORS.parchment,
+        borderRadius: '24px 24px 0 0', zIndex: 61,
+        padding: '0 0 env(safe-area-inset-bottom, 20px)',
+        boxShadow: '0 -6px 30px rgba(26,20,14,0.12)',
+        animation: 'slideUp 0.22s ease-out',
+      }}>
+        <style>{`@keyframes slideUp { from { transform: translateX(-50%) translateY(100%); } to { transform: translateX(-50%) translateY(0); } }`}</style>
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 14, paddingBottom: 4 }}>
+          <div style={{ width: 36, height: 4, background: COLORS.border, borderRadius: 2 }} />
+        </div>
+        <div style={{ padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontFamily: FONTS.heading, fontSize: 17, color: COLORS.charcoal }}>Analyse Ride</div>
+              <div style={{ fontFamily: FONTS.mono, fontSize: 10, color: COLORS.muted, marginTop: 2 }}>
+                {ride.horse} · {rideTypeLabel[ride.type] ?? ride.type} · {dateStr}
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.muted, fontSize: '20px' }}>×</button>
+          </div>
+
+          {storedRide?.videoBlob && (
+            <div style={{
+              background: `${COLORS.green}10`, border: `1px solid ${COLORS.green}30`,
+              borderRadius: 12, padding: '10px 14px',
+              fontFamily: FONTS.body, fontSize: 12, color: '#5A7A56',
+            }}>
+              ✓ This ride has been analysed. Upload a new video to re-analyse.
+            </div>
+          )}
+
+          {/* Camera tips (#59) */}
+          <CameraTips />
+
+          {validationMsg && (
+            <div style={{ fontFamily: FONTS.body, fontSize: '12px', color: validationMsg.startsWith('❌') ? COLORS.attention : '#C4714A', background: validationMsg.startsWith('❌') ? `${COLORS.attention}10` : `${COLORS.champagne}10`, borderRadius: 10, padding: '8px 12px' }}>
+              {validationMsg}
+            </div>
+          )}
+
+          {/* Drop zone */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDrop={handleDrop}
+            onDragOver={e => e.preventDefault()}
+            style={{
+              border: `2px dashed ${COLORS.champagne}`,
+              borderRadius: 16, padding: '24px 20px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+              cursor: 'pointer', background: `${COLORS.champagne}06`,
+              transition: 'background 0.15s',
+            }}
+          >
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%',
+              background: `${COLORS.cognac}12`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M12 15V3m0 0L8 7m4-4l4 4" stroke={COLORS.cognac} strokeWidth="2" strokeLinecap="round" />
+                <path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke={COLORS.cognac} strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </div>
+            <div style={{ fontFamily: FONTS.body, fontSize: 14, fontWeight: 600, color: COLORS.charcoal }}>Choose video</div>
+            <div style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.muted, textAlign: 'center' }}>
+              MP4, MOV or AVI · any size
+            </div>
+          </div>
+
+          <input ref={fileInputRef} type="file" accept="video/*" style={{ display: 'none' }} onChange={handleInputChange} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────
 
 export default function RidesPage() {
   const navigate = useNavigate();
-
-  // Profile setup
-  const [showProfileSetup, setShowProfileSetup] = useState(() => !isProfileComplete());
-
-  // Log form state
-  const [showLogForm, setShowLogForm] = useState(false);
-  const [logNote, setLogNote] = useState('');
-  const [logFocus, setLogFocus] = useState(mockGoal.milestones[0].id);
-  const [logDuration, setLogDuration] = useState('45');
-  const [logType, setLogType] = useState<'training' | 'lesson' | 'hack'>('training');
-  const [logSubmitted, setLogSubmitted] = useState(false);
-
-  // Video analysis
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const { status, progress, result, error, analyzeVideo, reset } = useVideoAnalysis();
-
-  // Saved ride state
-  const [sessionSaved, setSessionSaved] = useState(false);
-
-  // Card #59 — validation & UX state
-  const [fileError, setFileError] = useState<string | null>(null);
-  const [fileSizeWarning, setFileSizeWarning] = useState<string | null>(null);
-  const [processingMsgIdx, setProcessingMsgIdx] = useState(0);
-  const [showSuccessAnim, setShowSuccessAnim] = useState(false);
-
-  // Detail view for ride history
   const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
-  const [selectedStoredRide, setSelectedStoredRide] = useState<StoredRide | undefined>(undefined);
-  const [storedRides, setStoredRides] = useState<StoredRide[]>(getRides);
+  const [selectedStoredRide, setSelectedStoredRide] = useState<StoredRide | null>(null);
+  const [uploadTarget, setUploadTarget] = useState<Ride | null>(null);
+  const [uploadTargetStored, setUploadTargetStored] = useState<StoredRide | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStep, setProcessingStep] = useState(0);
+  const [insights, setInsights] = useState<MovementInsight[]>([]);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [showDetail, setShowDetail] = useState(false);
+  const [showAddRide, setShowAddRide] = useState(false);
+  const [userRides, setUserRides] = useState<Ride[]>([]);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const processMsgRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Refresh stored rides on mount
+  // Load stored rides
   useEffect(() => {
-    setStoredRides(getRides());
+    const stored = getRides();
+    if (stored.length > 0) {
+      const converted: Ride[] = stored.map(s => ({
+        id: s.id,
+        date: s.date,
+        horse: s.horse,
+        type: s.type as Ride['type'],
+        duration: s.duration,
+        signal: s.signal,
+        tags: [],
+        biometrics: s.biometrics,
+      }));
+      setUserRides(converted);
+    }
   }, []);
 
-  const isDone = status === 'done' && result !== null;
-  const isAnalyzing = status === 'loading-model' || status === 'extracting' || status === 'processing';
+  const { analyzeVideo } = useVideoAnalysis();
 
-  // Card #59 — cycle processing messages every 2s
-  useEffect(() => {
-    if (!isAnalyzing) return;
-    const interval = setInterval(() => {
-      setProcessingMsgIdx(i => (i + 1) % PROCESSING_MESSAGES.length);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [isAnalyzing]);
+  const handleVideoSelected = async (file: File) => {
+    if (!uploadTarget) return;
+    setIsProcessing(true);
+    setProcessingStep(0);
+    setShowDetail(false);
 
-  // Card #59 — show success animation on completion
-  useEffect(() => {
-    if (isDone) {
-      setShowSuccessAnim(true);
-      const t = setTimeout(() => setShowSuccessAnim(false), 1800);
-      return () => clearTimeout(t);
+    // Cycle through processing messages
+    let step = 0;
+    processMsgRef.current = setInterval(() => {
+      step = (step + 1) % PROCESSING_MESSAGES.length;
+      setProcessingStep(step);
+    }, 1800);
+
+    try {
+      const result = await analyzeVideo(file);
+      if (processMsgRef.current) clearInterval(processMsgRef.current);
+
+      const bio: BiometricsSnapshot = result.biometrics;
+      const qualities = computeRidingQualities(bio);
+      const newInsights = generateInsights(bio);
+      setInsights(newInsights);
+
+      const videoBlob = file;
+      const url = URL.createObjectURL(videoBlob);
+      setVideoUrl(url);
+
+      // Signal from analysis
+      const overallScore = Object.values(bio).reduce((a, b) => a + b, 0) / Object.values(bio).length;
+      const signal: 'improving' | 'consistent' | 'needs-work' =
+        overallScore >= 0.75 ? 'improving' : overallScore >= 0.60 ? 'consistent' : 'needs-work';
+
+      // Save to storage
+      const storedRide: StoredRide = {
+        id: uploadTarget.id,
+        date: uploadTarget.date,
+        horse: uploadTarget.horse,
+        type: uploadTarget.type,
+        duration: uploadTarget.duration,
+        signal,
+        biometrics: bio,
+        overallScore,
+        videoBlob: file,
+        analysedAt: new Date().toISOString(),
+      };
+      saveRide(storedRide);
+      setUploadTargetStored(storedRide);
+
+      // Update ride signal in userRides
+      setUserRides(prev => prev.map(r => r.id === uploadTarget.id ? { ...r, signal } : r));
+
+      setSelectedRide(uploadTarget);
+      setSelectedStoredRide(storedRide);
+      setShowDetail(true);
+    } catch (err) {
+      if (processMsgRef.current) clearInterval(processMsgRef.current);
+      console.error('Analysis failed:', err);
+    } finally {
+      setIsProcessing(false);
     }
-  }, [isDone]);
-
-  const handleLogSubmit = () => {
-    setLogSubmitted(true);
-    setTimeout(() => {
-      setLogSubmitted(false);
-      setShowLogForm(false);
-      setLogNote('');
-    }, 2000);
   };
 
-  // Card #59 — validate file before analyzing
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setFileError(null);
-    setFileSizeWarning(null);
-
-    // Format validation
-    const isAllowed = ALLOWED_FORMATS.includes(file.type) ||
-      /\.(mp4|mov|avi)$/i.test(file.name);
-    if (!isAllowed) {
-      setFileError('Please use MP4 or MOV format');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
-
-    // Size warning > 500MB
-    const sizeMB = file.size / (1024 * 1024);
-    if (sizeMB > SIZE_WARN_MB) {
-      setFileSizeWarning('Large video — analysis may take a few minutes');
-    }
-
-    setVideoFile(file);
-    setSessionSaved(false);
-    setProcessingMsgIdx(0);
-    analyzeVideo(file);
-  };
-
-  // Card #59 — cancel mid-processing
-  const handleCancelProcessing = () => {
-    handleReset();
-  };
-
-  const handleSaveSession = () => {
-    if (!result || !videoFile) return;
-    const bio = result.biometrics;
-    const qualities = computeRidingQualities(bio);
-    const overall = Object.values(bio).reduce((a, b) => a + b, 0) / Object.values(bio).length;
-
-    const ride: StoredRide = {
-      id: `stored-${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
-      horse: getUserProfile().horseName || 'Your Horse',
-      type: logType,
-      duration: parseInt(logDuration, 10) || 45,
-      videoFileName: videoFile.name,
-      biometrics: { ...bio },
-      ridingQuality: {
-        rhythm:       qualities[0].score,
-        relaxation:   qualities[1].score,
-        contact:      qualities[2].score,
-        impulsion:    qualities[3].score,
-        straightness: qualities[4].score,
-        balance:      qualities[5].score,
-      },
-      overallScore: Math.round(overall * 100) / 100,
-      insights: result.insights.map(i => i.text),
+  const handleAddRide = (data: {
+    type: RideType;
+    horse: string;
+    date: string;
+    duration: number;
+    notes: string;
+  }) => {
+    const newRide: Ride = {
+      id: `user-${Date.now()}`,
+      date: data.date,
+      horse: data.horse,
+      type: data.type,
+      duration: data.duration,
+      signal: 'consistent',
+      tags: data.notes ? [data.notes] : [],
     };
+    setUserRides(prev => [newRide, ...prev]);
 
-    saveRide(ride);
-    setStoredRides(getRides());
-    setSessionSaved(true);
+    // Check if profile is complete; if not, show the setup modal
+    if (!isProfileComplete()) {
+      setShowProfileModal(true);
+    }
   };
 
-  const handleReset = () => {
-    reset();
-    setVideoFile(null);
-    setSessionSaved(false);
-    setFileError(null);
-    setFileSizeWarning(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  // Combine stored rides with mock rides for the history
   const allRides = useMemo(() => {
-    // Convert stored rides to Ride-like objects for display
-    const fromStorage: Ride[] = storedRides.map(sr => ({
-      id: sr.id,
-      date: sr.date,
-      horse: sr.horse,
-      type: sr.type,
-      duration: sr.duration,
-      focusMilestone: 'Video Analysis',
-      reflection: sr.insights[0] ?? '',
-      signal: sr.overallScore >= 0.75 ? 'improving' as const : sr.overallScore >= 0.60 ? 'consistent' as const : 'needs-work' as const,
-      biometrics: sr.biometrics,
-      videoUploaded: true,
-      milestoneId: '',
-    }));
-    return [...fromStorage, ...mockRides];
-  }, [storedRides]);
+    const combined = [...userRides, ...mockRides];
+    return combined.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [userRides]);
 
-  const grouped = allRides.reduce((acc, ride) => {
-    const d = new Date(ride.date);
-    const key = d.toLocaleDateString('en', { month: 'long', year: 'numeric' });
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(ride);
-    return acc;
-  }, {} as Record<string, Ride[]>);
+  // Empty state: no rides yet (#60)
+  if (allRides.length === 0) {
+    return (
+      <div style={{ background: COLORS.parchment, minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center' }}>
+        <style>{`
+          @keyframes champagnePulse {
+            0%, 100% { transform: scale(1);   opacity: 0.8; }
+            50%       { transform: scale(1.3); opacity: 1;   }
+          }
+        `}</style>
+        <BrandedPulse />
+        <h1 style={{ fontFamily: FONTS.heading, fontSize: 22, fontWeight: 400, color: COLORS.charcoal, marginTop: 20, marginBottom: 10 }}>
+          Your rides will appear here
+        </h1>
+        <p style={{ fontFamily: FONTS.body, fontSize: 14, color: '#7A6B5D', lineHeight: 1.6, maxWidth: 280, marginBottom: 28 }}>
+          Log your first ride to start tracking your progress and getting feedback.
+        </p>
+        <button
+          onClick={() => setShowAddRide(true)}
+          style={{
+            background: COLORS.cognac, border: 'none', borderRadius: 24,
+            padding: '13px 28px', cursor: 'pointer',
+            fontFamily: FONTS.body, fontSize: 14, fontWeight: 600, color: '#FAF7F3',
+            boxShadow: '0 4px 16px rgba(140,90,60,0.3)',
+          }}
+        >
+          + Log Your First Ride
+        </button>
+        <AddRideModal open={showAddRide} onClose={() => setShowAddRide(false)} onAddRide={handleAddRide} />
+        <ProfileSetupModal open={showProfileModal} onClose={() => setShowProfileModal(false)} />
+      </div>
+    );
+  }
 
-  // Status message for analysis progress — now cycling via PROCESSING_MESSAGES (#59)
-  const statusMessage = PROCESSING_MESSAGES[processingMsgIdx];
+  if (showDetail && selectedRide) {
+    return (
+      <RideDetailView
+        ride={selectedRide}
+        storedRide={selectedStoredRide ?? undefined}
+        onClose={() => setShowDetail(false)}
+      />
+    );
+  }
 
   return (
-    <div style={{ background: COLORS.parchment, minHeight: '100%' }}>
-
-      {/* ── Profile Setup Modal (first visit) ──────────────── */}
-      {showProfileSetup && (
-        <ProfileSetupModal onComplete={() => setShowProfileSetup(false)} />
-      )}
-
-      {/* ── HEADER ─────────────────────────────────────────── */}
-      <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${COLORS.border}` }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            {(() => {
-              const profile = getUserProfile();
-              const hour = new Date().getHours();
-              const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-              const name = profile.firstName || '';
-              return name ? (
-                <>
-                  <div style={{ fontFamily: FONTS.body, fontSize: '13px', color: COLORS.muted, marginBottom: '2px' }}>
-                    {greeting}, {name}
-                  </div>
-                  <div style={{ fontFamily: FONTS.heading, fontSize: '26px', fontWeight: 400, color: COLORS.charcoal }}>
-                    Ride Analysis
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontFamily: FONTS.heading, fontSize: '26px', fontWeight: 400, color: COLORS.charcoal }}>
-                    Ride Analysis
-                  </div>
-                  <div style={{ fontFamily: FONTS.mono, fontSize: '11px', color: COLORS.muted }}>
-                    AI-powered biomechanics
-                  </div>
-                </>
-              );
-            })()}
-          </div>
-          {videoFile && (
-            <button
-              onClick={handleReset}
-              style={{
-                background: 'none',
-                border: `1.5px solid ${COLORS.border}`,
-                borderRadius: '10px',
-                padding: '7px 14px',
-                fontSize: '12px',
-                fontWeight: 500,
-                color: '#7A6B5D',
-                cursor: 'pointer',
-                fontFamily: FONTS.body,
-              }}
-            >
-              New Ride
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── LOG FORM ────────────────────────────────────────── */}
-      {showLogForm && (
-        <div style={{
-          background: COLORS.cardBg, margin: '12px 20px',
-          borderRadius: '20px', padding: '20px',
-          boxShadow: '0 4px 20px rgba(26,20,14,0.1)',
-          border: `1px solid ${COLORS.softBg}`,
-        }}>
-          {logSubmitted ? (
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
-              <div style={{ fontSize: '32px', marginBottom: '8px' }}>✓</div>
-              <div style={{ fontFamily: FONTS.heading, fontSize: '18px', color: COLORS.cognac }}>
-                Ride logged.
-              </div>
-              <div style={{ fontSize: '12px', color: COLORS.muted, fontFamily: FONTS.body, marginTop: '4px' }}>
-                Cadence is analysing...
-              </div>
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-                <div style={{ fontFamily: FONTS.heading, fontSize: '18px', color: COLORS.charcoal }}>Log a Ride</div>
-                <button onClick={() => setShowLogForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.muted, fontSize: '20px' }}>×</button>
-              </div>
-
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: COLORS.muted, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONTS.body, display: 'block', marginBottom: '8px' }}>Ride type</label>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {(['training', 'lesson', 'hack'] as const).map(type => (
-                    <button
-                      key={type}
-                      onClick={() => setLogType(type)}
-                      style={{
-                        flex: 1, padding: '8px 4px',
-                        borderRadius: '10px', border: 'none', cursor: 'pointer',
-                        background: logType === type ? COLORS.cognac : COLORS.softBg,
-                        color: logType === type ? COLORS.parchment : '#7A6B5D',
-                        fontSize: '12px', fontWeight: 500,
-                        fontFamily: FONTS.body,
-                      }}
-                    >
-                      {rideTypeLabel[type]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: COLORS.muted, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONTS.body, display: 'block', marginBottom: '8px' }}>Duration (minutes)</label>
-                <input
-                  type="number"
-                  value={logDuration}
-                  onChange={e => setLogDuration(e.target.value)}
-                  style={{
-                    width: '100%', padding: '10px 12px',
-                    borderRadius: '10px', border: `1.5px solid ${COLORS.border}`,
-                    fontSize: '14px', color: COLORS.charcoal,
-                    fontFamily: FONTS.mono,
-                    outline: 'none', background: COLORS.parchment,
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: COLORS.muted, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONTS.body, display: 'block', marginBottom: '8px' }}>Focus milestone</label>
-                <select
-                  value={logFocus}
-                  onChange={e => setLogFocus(e.target.value)}
-                  style={{
-                    width: '100%', padding: '10px 12px',
-                    borderRadius: '10px', border: `1.5px solid ${COLORS.border}`,
-                    fontSize: '13px', color: COLORS.charcoal,
-                    fontFamily: FONTS.body,
-                    background: COLORS.parchment, outline: 'none',
-                  }}
-                >
-                  {mockGoal.milestones.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ fontSize: '11px', fontWeight: 600, color: COLORS.muted, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONTS.body, display: 'block', marginBottom: '8px' }}>Reflection (optional)</label>
-                <textarea
-                  value={logNote}
-                  onChange={e => setLogNote(e.target.value)}
-                  placeholder="How did the ride feel? What worked, what didn't?"
-                  rows={3}
-                  style={{
-                    width: '100%', padding: '10px 12px',
-                    borderRadius: '10px', border: `1.5px solid ${COLORS.border}`,
-                    fontSize: '13px', color: COLORS.charcoal,
-                    fontFamily: FONTS.body,
-                    background: COLORS.parchment, outline: 'none',
-                    resize: 'none', lineHeight: 1.5,
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              {/* Camera tips (#59) */}
-              <CameraTips />
-              {/* ── Video Upload Area ──────────────────────────── */}
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  border: `1.5px dashed ${COLORS.border}`, borderRadius: '10px',
-                  padding: '14px', textAlign: 'center', marginBottom: '18px',
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="video/mp4,video/quicktime,.mp4,.mov,.avi"
-                  onChange={handleFileChange}
-                  style={{ display: 'none' }}
-                />
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 4 }}><rect x="3" y="4" width="18" height="16" rx="3" stroke={COLORS.champagne} strokeWidth="1.5" /><path d="M10 8.5V15.5L16 12L10 8.5Z" fill={COLORS.champagne} /></svg>
-                <div style={{ fontSize: '12px', color: COLORS.muted, fontFamily: FONTS.body }}>
-                  {videoFile ? videoFile.name : 'Upload video (optional)'}
-                </div>
-                <div style={{ fontSize: '11px', color: COLORS.champagne, fontFamily: FONTS.body, marginTop: '2px' }}>
-                  Upload a riding video and Cadence will analyze your position
-                </div>
-              </div>
-
-              <button
-                onClick={handleLogSubmit}
-                style={{
-                  width: '100%', background: COLORS.cognac, color: COLORS.parchment,
-                  border: 'none', borderRadius: '12px', padding: '13px',
-                  fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-                  fontFamily: FONTS.body,
-                }}
-              >
-                Save Ride
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ── FILE VALIDATION ERROR (#59) */}
-      {fileError && (
-        <div style={{
-          margin: '0 20px 12px',
-          background: 'rgba(196,113,74,0.1)',
-          border: '1px solid rgba(196,113,74,0.25)',
-          borderRadius: '12px', padding: '12px 16px',
-          display: 'flex', alignItems: 'center', gap: '10px',
-        }}>
-          <span style={{ fontSize: '16px' }}>⚠️</span>
-          <span style={{ fontFamily: FONTS.body, fontSize: '13px', color: COLORS.attention, flex: 1 }}>
-            {fileError}
-          </span>
-          <button onClick={() => setFileError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.muted, fontSize: '20px', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-        </div>
-      )}
-
-      {/* ── FILE SIZE WARNING (#59) */}
-      {fileSizeWarning && (
-        <div style={{
-          margin: '0 20px 12px',
-          background: 'rgba(201,169,110,0.12)',
-          border: '1px solid rgba(201,169,110,0.3)',
-          borderRadius: '12px', padding: '12px 16px',
-          display: 'flex', alignItems: 'center', gap: '10px',
-        }}>
-          <span style={{ fontSize: '16px' }}>⏱</span>
-          <span style={{ fontFamily: FONTS.body, fontSize: '13px', color: '#7A6B5D', flex: 1 }}>
-            {fileSizeWarning}
-          </span>
-          <button onClick={() => setFileSizeWarning(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.muted, fontSize: '20px', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-        </div>
-      )}
-
-            {/* ── VIDEO ANALYSIS SECTION ─────────────────────────── */}
-      {(isAnalyzing || isDone || status === 'error') && (
-        <div style={{ padding: '0 20px', marginBottom: '16px' }}>
-          <div style={{
-            background: COLORS.cardBg,
-            borderRadius: '20px',
-            overflow: 'hidden',
-            boxShadow: '0 4px 20px rgba(26,20,14,0.1)',
-            border: `1px solid ${COLORS.softBg}`,
-          }}>
-
-            {/* ── Video Area with Progress Overlay ──────────── */}
-            <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#1A140E' }}>
-
-              {/* Video element (visible during analysis and after done) */}
-              {result?.videoPlaybackUrl && (
-                <video
-                  src={result.videoPlaybackUrl}
-                  controls={isDone}
-                  muted
-                  playsInline
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              )}
-
-              {/* Silhouette overlay — visible when analysis is complete */}
-              {isDone && result && (
-                <VideoSilhouetteOverlay biometrics={result.biometrics} />
-              )}
-
-              {/* ── Premium Progress Overlay ─────────────────── */}
-              {isAnalyzing && (
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  background: 'rgba(26, 20, 14, 0.85)',
-                  display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center',
-                  gap: '16px',
-                  animation: 'fadeIn 0.3s ease',
-                }}>
-                  {/* Circular progress ring */}
-                  <div style={{ position: 'relative', width: 88, height: 88 }}>
-                    <svg width="88" height="88" viewBox="0 0 88 88" style={{ transform: 'rotate(-90deg)' }}>
-                      {/* Background ring */}
-                      <circle
-                        cx="44" cy="44" r="38"
-                        fill="none"
-                        stroke="rgba(201,169,110,0.2)"
-                        strokeWidth="4"
-                      />
-                      {/* Progress ring */}
-                      <circle
-                        cx="44" cy="44" r="38"
-                        fill="none"
-                        stroke={COLORS.champagne}
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                        strokeDasharray={`${2 * Math.PI * 38}`}
-                        strokeDashoffset={`${2 * Math.PI * 38 * (1 - progress / 100)}`}
-                        style={{ transition: 'stroke-dashoffset 0.4s ease' }}
-                      />
-                    </svg>
-                    {/* Percentage text */}
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontFamily: FONTS.mono, fontSize: '16px', color: COLORS.champagne,
-                      fontWeight: 500,
-                    }}>
-                      {progress}%
-                    </div>
-                  </div>
-
-                  {/* Status text */}
-                  <div style={{
-                    fontFamily: FONTS.body, fontSize: '13px', color: 'rgba(250,247,243,0.8)',
-                    letterSpacing: '0.02em',
-                  }}>
-                    {statusMessage}
-                  </div>
-
-                  {/* Subtle pulsing dot */}
-                  <div style={{
-                    width: 6, height: 6, borderRadius: '50%',
-                    background: COLORS.champagne,
-                    animation: 'pulse 1.5s ease-in-out infinite',
-                  }} />
-                </div>
-              )}
-            </div>
-
-            {/* ── Error State ────────────────────────────────── */}
-            {status === 'error' && (
-              <div style={{ padding: '20px', textAlign: 'center' }}>
-                <div style={{ fontSize: '14px', color: '#7A6B5D', fontFamily: FONTS.body, marginBottom: '6px' }}>
-                  {error?.toLowerCase().includes('large') || error?.toLowerCase().includes('size')
-                    ? 'Video too large — try trimming to under 10 minutes'
-                    : 'Something went wrong — please try a different video'}
-                </div>
-                <button
-                  onClick={handleReset}
-                  style={{
-                    background: COLORS.softBg, color: COLORS.cognac,
-                    border: 'none', borderRadius: '10px', padding: '10px 20px',
-                    fontSize: '13px', fontFamily: FONTS.body, fontWeight: 600,
-                    cursor: 'pointer', minHeight: '44px',
-                  }}
-                >
-                  Try Again
-                </button>
-              </div>
-            )}
-
-            {/* ── Results Panel ─────────────────────────────── */}
-            {isDone && (
-              <div style={{
-                padding: '20px',
-                animation: 'slideUp 0.5s ease',
-              }}>
-                <div style={{
-                  fontFamily: FONTS.mono, fontSize: '10px', color: COLORS.muted,
-                  marginBottom: '16px',
-                }}>
-                  {result.frameCount} frames analyzed
-                </div>
-
-                {/* ── Layer 1: Your Position ─────────────────── */}
-                <LayerHeader icon="🧍" title="Your Position" subtitle="Movement & Biomechanics" />
-
-                {/* 6 Radial Gauges — 2×3 grid */}
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
-                  gap: '12px', marginBottom: '20px',
-                }}>
-                  {([
-                    ['lowerLegStability',  'Lower Leg'],
-                    ['reinSteadiness',     'Rein Steady'],
-                    ['reinSymmetry',       'Symmetry'],
-                    ['coreStability',      'Core'],
-                    ['upperBodyAlignment', 'Upper Body'],
-                    ['pelvisStability',    'Pelvis'],
-                  ] as [keyof BiometricsSnapshot, string][]).map(([key, label]) => {
-                    const val = result.biometrics[key];
-                    return (
-                      <RadialGauge key={key} value={val} label={label} />
-                    );
-                  })}
-                </div>
-
-                {/* ── Layer 2: Riding Quality ────────────────── */}
-                <div style={{ marginTop: '8px', marginBottom: '20px' }}>
-                  <LayerHeader icon="🎯" title="Riding Quality" subtitle="The Training Scales" />
-
-                  <div style={{
-                    display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
-                    gap: '12px',
-                  }}>
-                    {(() => {
-                      const qualities = computeRidingQualities(result.biometrics);
-                      const qualityColors = ['#C9A96E', '#7D9B76', '#8C5A3C', '#C4714A', '#6B7FA3', '#B5A898'];
-                      return qualities.map((q, i) => (
-                        <RadialGauge key={q.name} value={q.score} label={q.name} color={qualityColors[i]} />
-                      ));
-                    })()}
-                  </div>
-                </div>
-
-                {/* ── Insights Summary Card ──────────────────── */}
-                <InsightsCard insights={result.insights} />
-
-                {/* ── Save Session / Reset buttons ───────────── */}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-                  {!sessionSaved ? (
-                    <button
-                      onClick={handleSaveSession}
-                      style={{
-                        flex: 1, background: COLORS.cognac, color: COLORS.parchment,
-                        border: 'none', borderRadius: '12px', padding: '13px',
-                        fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-                        fontFamily: FONTS.body,
-                      }}
-                    >
-                      Save Ride
-                    </button>
-                  ) : (
-                    <div style={{
-                      flex: 1, textAlign: 'center', padding: '13px',
-                      background: `${COLORS.green}15`, borderRadius: '12px',
-                      color: COLORS.green, fontFamily: FONTS.body,
-                      fontSize: '14px', fontWeight: 600,
-                    }}>
-                      ✓ Ride Saved
-                    </div>
-                  )}
-                  <button
-                    onClick={handleReset}
-                    style={{
-                      background: COLORS.softBg, color: COLORS.muted,
-                      border: 'none', borderRadius: '12px', padding: '13px 18px',
-                      fontSize: '13px', fontFamily: FONTS.body, fontWeight: 500,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    New
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── Quick Upload (when no analysis active) ──────── */}
-      {status === 'idle' && !showLogForm && (
-        <div style={{ padding: '0 20px', marginBottom: '12px' }}>
-          {/* Camera tips (#59) */}
-          <CameraTips />
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            style={{
-              position: 'relative',
-              borderRadius: '20px',
-              height: 220,
-              overflow: 'hidden',
-              cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(26,20,14,0.12)',
-            }}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="video/mp4,video/quicktime,.mp4,.mov,.avi"
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
-            {/* Background image */}
-            <img
-              src={`${import.meta.env.BASE_URL}hero.jpg`}
-              alt=""
-              style={{
-                position: 'absolute', inset: 0,
-                width: '100%', height: '100%',
-                objectFit: 'cover',
-                objectPosition: 'center 40%',
-              }}
-            />
-            {/* Dark gradient overlay */}
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(to bottom, rgba(20,14,8,0.15) 0%, rgba(20,14,8,0.75) 100%)',
-              pointerEvents: 'none',
-            }} />
-            {/* Content */}
-            <div style={{
-              position: 'absolute', bottom: 20, left: 20, right: 20,
-            }}>
-              <div style={{
-                fontFamily: FONTS.heading, fontSize: '22px', color: COLORS.parchment,
-                marginBottom: '6px',
-                textShadow: '0 1px 6px rgba(0,0,0,0.3)',
-              }}>
-                Analyze Your Ride
-              </div>
-              <div style={{
-                fontFamily: FONTS.body, fontSize: '12px', color: 'rgba(250,247,243,0.75)',
-                lineHeight: 1.5, marginBottom: '14px', maxWidth: 260,
-              }}>
-                Upload a riding video and Cadence will analyze your position, balance, and biomechanics.
-              </div>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                background: COLORS.cognac, color: COLORS.parchment,
-                borderRadius: '14px', padding: '10px 22px',
-                fontSize: '13px', fontWeight: 600, fontFamily: FONTS.body,
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 4v12M6 10l6-6 6 6" stroke={COLORS.parchment} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M4 18h16" stroke={COLORS.parchment} strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                Upload Ride
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── SESSION HISTORY ─────────────────────────────────── */}
-      <div style={{ padding: '16px 20px 28px' }}>
-        <div style={{
-          fontFamily: FONTS.heading, fontSize: '18px', color: COLORS.charcoal,
-          marginBottom: '12px',
-        }}>
-          Ride History
-        </div>
-
-        {/* ── Empty state (#60) */}
-        {Object.keys(grouped).length === 0 && (
-          <div style={{
-            textAlign: 'center', padding: '40px 20px',
-            background: '#FFFFFF', borderRadius: '16px',
-            border: '1px solid #EDE7DF',
-          }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px' }}>🐎</div>
-            <div style={{
-              fontFamily: FONTS.heading, fontSize: '17px', color: COLORS.charcoal,
-              marginBottom: '8px',
-            }}>
-              Your first ride awaits.
-            </div>
-            <div style={{
-              fontFamily: FONTS.body, fontSize: '13px', color: '#7A6B5D',
-              lineHeight: 1.55,
-            }}>
-              Upload a video to begin your journey.
-            </div>
-          </div>
-        )}
-
-                {Object.entries(grouped).map(([month, rides]) => (
-          <div key={month}>
-            <div style={{
-              fontSize: '10px', fontWeight: 600, letterSpacing: '0.14em',
-              textTransform: 'uppercase', color: COLORS.muted,
-              fontFamily: FONTS.body, marginBottom: '10px', marginTop: '8px',
-            }}>
-              {month}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-              {rides.map(ride => {
-                const isStored = ride.id.startsWith('stored-');
-                const stored = isStored ? storedRides.find(s => s.id === ride.id) : null;
-                return (
-                  <RideRow
-                    key={ride.id}
-                    ride={ride}
-                    storedRide={stored ?? undefined}
-                    onClick={() => {
-                      setSelectedRide(ride);
-                      setSelectedStoredRide(stored ?? undefined);
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── CSS Keyframes ────────────────────────────────────── */}
+    <div style={{ background: COLORS.parchment, minHeight: '100%', paddingBottom: 100 }}>
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes fadeOut {
-          from { opacity: 1; }
-          to { opacity: 0; }
-        }
         @keyframes champagnePulse {
-          0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-          40% { opacity: 1; transform: scale(1); }
+          0%, 100% { transform: scale(1);   opacity: 0.8; }
+          50%       { transform: scale(1.3); opacity: 1;   }
         }
-        @keyframes successPop {
-          from { transform: scale(0.5); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 0.4; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.3); }
+        @keyframes processingPulse {
+          0%, 100% { opacity: 0.6; transform: scale(0.98); }
+          50%       { opacity: 1;   transform: scale(1);    }
         }
       `}</style>
 
-      {/* ── RIDE DETAIL VIEW (Card #56) ──────────────────────── */}
-      {selectedRide && (
-        <RideDetailView
-          ride={selectedRide}
-          storedRide={selectedStoredRide}
-          onClose={() => { setSelectedRide(null); setSelectedStoredRide(undefined); }}
-        />
-      )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────
-// LAYER HEADER COMPONENT
-// ─────────────────────────────────────────────────────────
-
-function LayerHeader({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-      <span style={{ fontSize: 20 }}>{icon}</span>
-      <div>
-        <div style={{ fontFamily: FONTS.heading, fontSize: 17, color: COLORS.charcoal }}>{title}</div>
-        <div style={{ fontFamily: FONTS.mono, fontSize: 10, color: COLORS.muted }}>{subtitle}</div>
+      {/* ── Header ── */}
+      <div style={{ padding: '20px 20px 0' }}>
+        <h1 style={{ fontFamily: FONTS.heading, fontSize: '26px', fontWeight: 400, color: COLORS.charcoal, marginBottom: '4px' }}>
+          Rides
+        </h1>
+        <p style={{ fontSize: '12px', color: COLORS.muted, fontFamily: FONTS.body, marginBottom: 16 }}>
+          {allRides.length} session{allRides.length !== 1 ? 's' : ''} logged
+        </p>
       </div>
-    </div>
-  );
-}
 
-// ─────────────────────────────────────────────────────────
-// RADIAL GAUGE COMPONENT
-// ─────────────────────────────────────────────────────────
-
-function RadialGauge({ value, label, color: fixedColor }: { value: number; label: string; color?: string }) {
-  const pct = Math.round(value * 100);
-  const color = fixedColor || scoreColor(value);
-  const r = 28;
-  const circumference = 2 * Math.PI * r;
-  const offset = circumference * (1 - value);
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-      <div style={{ position: 'relative', width: 64, height: 64 }}>
-        <svg width="64" height="64" viewBox="0 0 64 64" style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx="32" cy="32" r={r} fill="none" stroke={COLORS.softBg} strokeWidth="5" />
-          <circle
-            cx="32" cy="32" r={r}
-            fill="none" stroke={color} strokeWidth="5"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            style={{ transition: 'stroke-dashoffset 0.8s ease' }}
-          />
-        </svg>
+      {/* ── Goal card ── */}
+      <div style={{ padding: '0 20px', marginBottom: 16 }}>
         <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: FONTS.mono, fontSize: '13px', fontWeight: 600, color,
+          background: COLORS.cardBg,
+          borderRadius: '16px', padding: '14px 16px',
+          boxShadow: '0 2px 10px rgba(26,20,14,0.05)',
+          display: 'flex', flexDirection: 'column', gap: '8px',
         }}>
-          {pct}
-        </div>
-      </div>
-      <div style={{
-        fontFamily: FONTS.body, fontSize: '10px', color: COLORS.muted,
-        textAlign: 'center', lineHeight: 1.2,
-      }}>
-        {label}
-      </div>
-      <div style={{
-        fontFamily: FONTS.mono, fontSize: '9px', color,
-        textTransform: 'uppercase', letterSpacing: '0.05em',
-      }}>
-        {scoreLabel(value)}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────
-// INSIGHTS CARD COMPONENT
-// ─────────────────────────────────────────────────────────
-
-function InsightsCard({ insights }: { insights: MovementInsight[] }) {
-  return (
-    <div style={{
-      background: COLORS.parchment, borderRadius: '14px',
-      padding: '16px', border: `1px solid ${COLORS.border}`,
-    }}>
-      <div style={{
-        fontFamily: FONTS.heading, fontSize: '14px', color: COLORS.charcoal,
-        marginBottom: '12px',
-      }}>
-        Key Insights
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {insights.map((insight, i) => (
-          <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontFamily: FONTS.mono, fontSize: '10px', fontWeight: 600, color: COLORS.muted, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+              Current Focus
+            </div>
             <div style={{
-              width: 22, height: 22, borderRadius: '50%',
-              background: `${insight.iconColor}18`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '11px', color: insight.iconColor,
-              flexShrink: 0, marginTop: 1,
+              fontFamily: FONTS.body, fontSize: '11px', color: COLORS.champagne,
+              background: `${COLORS.champagne}15`, padding: '3px 8px', borderRadius: '8px',
             }}>
-              {insight.icon}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                <span style={{
-                  fontFamily: FONTS.body, fontSize: '11px', fontWeight: 600,
-                  color: COLORS.charcoal,
-                }}>
-                  {insight.metric}
-                </span>
-                <span style={{
-                  fontFamily: FONTS.mono, fontSize: '9px',
-                  color: insight.trendColor, textTransform: 'uppercase',
-                }}>
-                  {insight.trend}
-                </span>
-              </div>
-              <div style={{
-                fontFamily: FONTS.body, fontSize: '11.5px',
-                color: '#6B5E50', lineHeight: 1.45,
-              }}>
-                {insight.text}
-              </div>
+              {mockGoal.ridesConsistent}/{mockGoal.ridesRequired} rides
             </div>
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────
-// RIDE ROW COMPONENT
-// ─────────────────────────────────────────────────────────
-
-function RideRow({ ride, storedRide, onClick }: { ride: Ride; storedRide?: StoredRide; onClick: () => void }) {
-  const signal = signalConfig[ride.signal];
-  const d = new Date(ride.date);
-  const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        background: COLORS.cardBg, borderRadius: '14px', padding: '13px 15px',
-        display: 'flex', alignItems: 'center', gap: 12,
-        boxShadow: '0 2px 8px rgba(26,20,14,0.05)', cursor: 'pointer',
-        transition: 'transform 0.1s ease',
-        border: storedRide ? `1px solid ${COLORS.champagne}30` : 'none',
-      }}
-    >
-      <div style={{ width: 9, height: 9, borderRadius: '50%', background: signal.color, flexShrink: 0, marginTop: 1 }} />
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-          <span style={{ fontSize: '13.5px', fontWeight: 500, color: COLORS.charcoal, fontFamily: FONTS.body }}>
-            {rideTypeLabel[ride.type] ?? ride.type} · {ride.horse}
-          </span>
-          {ride.videoUploaded && (
-            <span style={{ fontSize: '10px', background: '#F0F4F8', color: '#6B7FA3', padding: '2px 6px', borderRadius: '6px', fontFamily: FONTS.body }}>
-              📹
-            </span>
-          )}
-          {storedRide && (
-            <span style={{
-              fontSize: '9px', background: `${COLORS.champagne}20`, color: COLORS.champagne,
-              padding: '2px 6px', borderRadius: '6px', fontFamily: FONTS.mono,
-              fontWeight: 600, letterSpacing: '0.03em',
-            }}>
-              AI
-            </span>
-          )}
-        </div>
-        <div style={{ fontFamily: FONTS.mono, fontSize: '10.5px', color: COLORS.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {dateStr} · {ride.duration}min{storedRide ? ` · Score ${Math.round(storedRide.overallScore * 100)}%` : ` · ${ride.focusMilestone}`}
-        </div>
-
-        {/* Mini score bar for stored rides */}
-        {storedRide && (
-          <div style={{ display: 'flex', gap: 4, marginTop: 5 }}>
-            {([
-              ['LL', storedRide.biometrics.lowerLegStability],
-              ['RS', storedRide.biometrics.reinSteadiness],
-              ['SY', storedRide.biometrics.reinSymmetry],
-              ['CO', storedRide.biometrics.coreStability],
-              ['UB', storedRide.biometrics.upperBodyAlignment],
-              ['PV', storedRide.biometrics.pelvisStability],
-            ] as [string, number][]).map(([abbr, val]) => (
-              <div key={abbr} style={{
-                fontFamily: FONTS.mono, fontSize: '8px',
-                color: scoreColor(val), background: `${scoreColor(val)}12`,
-                padding: '2px 4px', borderRadius: '4px',
-              }}>
-                {abbr} {Math.round(val * 100)}
-              </div>
-            ))}
+          <div style={{ fontFamily: FONTS.body, fontSize: '14px', fontWeight: 500, color: COLORS.charcoal }}>
+            {mockGoal.name}
           </div>
-        )}
-      </div>
-
-      <div style={{ textAlign: 'center', flexShrink: 0 }}>
-        <div style={{ fontSize: '18px', color: signal.color, lineHeight: 1 }}>{signal.symbol}</div>
-        <div style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.08em', color: COLORS.muted, fontFamily: FONTS.body }}>
-          {signal.label}
+          <div style={{ height: '4px', background: COLORS.softBg, borderRadius: '2px', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${(mockGoal.ridesConsistent / mockGoal.ridesRequired) * 100}%`,
+              background: `linear-gradient(90deg, ${COLORS.cognac}, ${COLORS.champagne})`,
+              borderRadius: '2px',
+              transition: 'width 0.5s ease',
+            }} />
+          </div>
         </div>
       </div>
 
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-        <path d="M9 6l6 6-6 6" stroke="#D4C9BC" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
+      {/* ── Processing overlay ── */}
+      {isProcessing && (
+        <div style={{
+          margin: '0 20px 16px',
+          background: COLORS.cardBg, borderRadius: 16, padding: '18px 20px',
+          boxShadow: '0 2px 12px rgba(26,20,14,0.08)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+          animation: 'processingPulse 2s ease-in-out infinite',
+        }}>
+          <BrandedPulse />
+          <div style={{ fontFamily: FONTS.body, fontSize: 14, color: COLORS.charcoal, fontWeight: 500 }}>
+            {PROCESSING_MESSAGES[processingStep]}
+          </div>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 10, color: COLORS.muted }}>
+            Analysing your ride — this takes a moment
+          </div>
+        </div>
+      )}
+
+      {/* ── Rides list ── */}
+      <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {allRides.map(ride => {
+          const stored = getRides().find(s => s.id === ride.id);
+          const d = new Date(ride.date);
+          const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+          const scoreRaw = stored?.overallScore ?? ride.biometrics
+            ? Object.values((stored?.biometrics ?? ride.biometrics)!).reduce((a, b) => a + b, 0) / 6
+            : null;
+          const scorePct = scoreRaw !== null ? Math.round(scoreRaw * 100) : null;
+          const sc = scorePct !== null ? scoreColor(scoreRaw!) : COLORS.muted;
+
+          return (
+            <div
+              key={ride.id}
+              onClick={() => {
+                setSelectedRide(ride);
+                setSelectedStoredRide(stored ?? null);
+                setShowDetail(true);
+              }}
+              style={{
+                background: COLORS.cardBg, borderRadius: '14px',
+                padding: '14px 16px', cursor: 'pointer',
+                boxShadow: '0 2px 10px rgba(26,20,14,0.05)',
+                display: 'flex', gap: '12px', alignItems: 'flex-start',
+                borderLeft: `3px solid ${signalConfig[ride.signal].color}`,
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(26,20,14,0.10)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 10px rgba(26,20,14,0.05)';
+              }}
+            >
+              {/* Score bubble or signal */}
+              {scorePct !== null ? (
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: `${sc}15`, border: `1.5px solid ${sc}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <span style={{ fontFamily: FONTS.mono, fontSize: '11px', fontWeight: 700, color: sc }}>{scorePct}</span>
+                </div>
+              ) : (
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: `${signalConfig[ride.signal].color}15`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <span style={{ fontFamily: FONTS.mono, fontSize: '14px', color: signalConfig[ride.signal].color }}>
+                    {signalConfig[ride.signal].symbol}
+                  </span>
+                </div>
+              )}
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                  <div style={{ fontFamily: FONTS.body, fontSize: '13px', fontWeight: 500, color: COLORS.charcoal }}>
+                    {rideTypeLabel[ride.type] ?? ride.type}
+                  </div>
+                  <div style={{ fontFamily: FONTS.mono, fontSize: '10px', color: COLORS.muted, flexShrink: 0, marginLeft: 6 }}>
+                    {dateStr}
+                  </div>
+                </div>
+
+                <div style={{ fontFamily: FONTS.mono, fontSize: '10px', color: COLORS.muted, marginBottom: 6 }}>
+                  {ride.horse} · {ride.duration}min
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {ride.tags?.slice(0, 2).map(tag => (
+                    <span key={tag} style={{
+                      background: COLORS.softBg, color: '#7A6B5D',
+                      fontSize: '10px', padding: '2px 8px', borderRadius: '8px',
+                      fontFamily: FONTS.body,
+                    }}>{tag}</span>
+                  ))}
+                  {!stored?.videoBlob && (
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        setUploadTarget(ride);
+                        setUploadTargetStored(stored ?? null);
+                      }}
+                      style={{
+                        background: 'none', border: `1px solid ${COLORS.champagne}`,
+                        borderRadius: '8px', padding: '2px 8px', cursor: 'pointer',
+                        fontSize: '10px', color: COLORS.champagne, fontFamily: FONTS.body,
+                        fontWeight: 500,
+                      }}
+                    >
+                      + Analyse
+                    </button>
+                  )}
+                  {stored?.videoBlob && (
+                    <span style={{
+                      fontSize: '9px', color: COLORS.green, background: `${COLORS.green}12`,
+                      padding: '2px 7px', borderRadius: '8px', fontFamily: FONTS.mono,
+                      fontWeight: 600,
+                    }}>
+                      Analysed
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                <path d="M9 6l6 6-6 6" stroke="#D4C9BC" strokeWidth="1.7" strokeLinecap="round" />
+              </svg>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Add Ride FAB ── */}
+      <AddRideFAB onClick={() => setShowAddRide(true)} />
+
+      <AddRideModal open={showAddRide} onClose={() => setShowAddRide(false)} onAddRide={handleAddRide} />
+
+      <UploadSheet
+        open={!!uploadTarget}
+        onClose={() => setUploadTarget(null)}
+        onVideoSelected={handleVideoSelected}
+        ride={uploadTarget}
+        storedRide={uploadTargetStored}
+      />
+
+      {videoUrl && (
+        <VideoSilhouetteOverlay videoUrl={videoUrl} insights={insights} onClose={() => setVideoUrl(null)} />
+      )}
+
+      <ProfileSetupModal open={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </div>
   );
 }

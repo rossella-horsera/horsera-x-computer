@@ -31,7 +31,7 @@ function renderMarkdown(text: string): string {
     .replace(/\n/g, '<br/>');
 }
 
-// ─── Web Speech API — ambient type declarations ───────────────────────────────
+// ─── Web Speech API — ambient type declarations ───────────────────────
 type SpeechState = 'idle' | 'listening' | 'done';
 
 declare global {
@@ -50,9 +50,11 @@ function getSpeechRecognitionClass(): (new () => SpeechRecognition) | null {
 interface CadenceDrawerProps {
   open: boolean;
   onClose: () => void;
+  onStreamingChange?: (v: boolean) => void;
+  onSpeechStateChange?: (v: SpeechState) => void;
 }
 
-export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
+export default function CadenceDrawer({ open, onClose, onStreamingChange, onSpeechStateChange }: CadenceDrawerProps) {
   const profile = getUserProfile();
   const riderName = profile.firstName || 'Rider';
   const [messages, setMessages] = useState<Message[]>([
@@ -67,6 +69,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null);
   const [speechState, setSpeechState] = useState<SpeechState>('idle');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [comingSoonMsg, setComingSoonMsg] = useState<string | null>(null);
   const comingSoonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -94,7 +97,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
     if (!open && recognitionRef.current) {
       try { recognitionRef.current.abort(); } catch {}
       recognitionRef.current = null;
-      setSpeechState('idle');
+      setSpeechState('idle'); onSpeechStateChange?.('idle');
     }
   }, [open]);
 
@@ -112,7 +115,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
     setMessages(prev => [...prev, riderMsg]);
     setInput('');
     setPendingImage(null);
-    setIsStreaming(true);
+    setIsStreaming(true); onStreamingChange?.(true);
     setRateLimitMsg(null);
     const allMessages = [...messages, riderMsg];
     const apiMessages = allMessages.map(m => ({
@@ -132,7 +135,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
       if (response.status === 429) {
         const err = await response.json();
         setRateLimitMsg(err.detail?.message || 'You have reached your message limit. Please try again later.');
-        setIsStreaming(false);
+        setIsStreaming(false); onStreamingChange?.(false);
         return;
       }
       if (!response.ok) throw new Error(`API error: ${response.status}`);
@@ -186,7 +189,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
         return [...prev, { role: 'cadence', text: fallback, timestamp: now }];
       });
     } finally {
-      setIsStreaming(false);
+      setIsStreaming(false); onStreamingChange?.(false);
     }
   }, [messages, isStreaming]);
 
@@ -210,7 +213,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
     setPendingImage({ dataUrl, name: file.name });
   }, [showComingSoon]);
 
-  // ─── Voice input — Web Speech API (Chrome + iOS Safari webkit prefix) ─────────
+  // ─── Voice input — Web Speech API (Chrome + iOS Safari webkit prefix) ─────
   const toggleRecording = useCallback(async () => {
     const SpeechRecognitionClass = getSpeechRecognitionClass();
 
@@ -223,6 +226,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
     // If already listening, stop the current session
     if (speechState === 'listening') {
       try { recognitionRef.current?.stop(); } catch {}
+      setInterimTranscript('');
       return;
     }
 
@@ -236,7 +240,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
       recognition.lang = 'en-US';
       recognition.maxAlternatives = 1;
 
-      setSpeechState('listening');
+      setSpeechState('listening'); onSpeechStateChange?.('listening');
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0]?.[0]?.transcript?.trim() ?? '';
@@ -244,7 +248,7 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
           // Fill the input so the rider can review/edit before sending
           setInput(prev => prev ? `${prev} ${transcript}` : transcript);
         }
-        setSpeechState('done');
+        setSpeechState('done'); onSpeechStateChange?.('done');
         // Brief "done" glow, then back to idle
         setTimeout(() => setSpeechState('idle'), 700);
       };
@@ -257,20 +261,20 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
         } else if (event.error !== 'aborted') {
           showComingSoon('Voice input unavailable');
         }
-        setSpeechState('idle');
+        setSpeechState('idle'); onSpeechStateChange?.('idle');
         recognitionRef.current = null;
       };
 
       recognition.onend = () => {
-        // If recognition ended without a result (e.g. silence), reset
-        setSpeechState(prev => prev === 'listening' ? 'idle' : prev);
+        setInterimTranscript('');
+        setSpeechState(prev => { const next = prev === 'listening' ? 'idle' : prev; onSpeechStateChange?.(next); return next; });
         recognitionRef.current = null;
       };
 
       recognition.start();
     } catch {
       showComingSoon('Voice input unavailable');
-      setSpeechState('idle');
+      setSpeechState('idle'); onSpeechStateChange?.('idle');
     }
   }, [speechState, showComingSoon]);
 
@@ -365,32 +369,68 @@ export default function CadenceDrawer({ open, onClose }: CadenceDrawerProps) {
               <button onClick={() => setPendingImage(null)} style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: '#F0EBE4', cursor: 'pointer', color: '#7A6B5D', fontSize: 16, lineHeight: 1 }} aria-label="Remove image">×</button>
             </div>
           )}
+          {/* Live transcript display when recording */}
+          {isRecording && (
+            <div style={{
+              background: 'rgba(140,90,60,0.06)',
+              border: '1px solid rgba(140,90,60,0.18)',
+              borderRadius: '12px',
+              padding: '8px 12px',
+              fontSize: '12.5px',
+              color: interimTranscript ? '#1A140E' : '#B5A898',
+              fontFamily: "'DM Sans', sans-serif",
+              fontStyle: interimTranscript ? 'normal' : 'italic',
+              lineHeight: 1.5,
+              display: 'flex', alignItems: 'center', gap: 8,
+              minHeight: 40,
+            }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: '#8C5A3C',
+                flexShrink: 0,
+                animation: 'mic-pulse 1.4s ease-out infinite',
+              }} />
+              {interimTranscript || 'Listening…'}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-            {/* Mic button — Cognac when listening, pulse animation */}
+            {/* Mic / Done button */}
             <button
               onClick={toggleRecording}
-              aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
+              aria-label={isRecording ? 'Done — stop voice input' : 'Start voice input'}
               style={{
-                width: 40, height: 40, borderRadius: '50%',
+                minWidth: isRecording ? 64 : 40, height: 40,
+                borderRadius: isRecording ? '20px' : '50%',
                 background: isRecording ? '#8C5A3C' : '#F0EBE4',
                 border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: isRecording ? 5 : 0,
                 flexShrink: 0,
-                transition: 'background 0.2s ease',
+                transition: 'all 0.2s ease',
                 animation: isRecording ? 'mic-pulse 1.4s ease-out infinite' : 'none',
+                padding: isRecording ? '0 14px' : '0',
               }}
             >
+              {isRecording ? (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="4" width="16" height="16" rx="3" fill="#FAF7F3" />
+                  </svg>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#FAF7F3', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap' }}>Done</span>
+                </>
+              ) : (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <rect x="8" y="2" width="8" height="12" rx="4" fill={isRecording ? '#FAF7F3' : '#7A6B5D'} />
-                <path d="M5 11C5 14.87 8.13 18 12 18C15.87 18 19 14.87 19 11" stroke={isRecording ? '#FAF7F3' : '#7A6B5D'} strokeWidth="1.5" strokeLinecap="round" />
-                <line x1="12" y1="18" x2="12" y2="22" stroke={isRecording ? '#FAF7F3' : '#7A6B5D'} strokeWidth="1.5" strokeLinecap="round" />
+                <rect x="8" y="2" width="8" height="12" rx="4" fill={'#7A6B5D'} />
+                <path d="M5 11C5 14.87 8.13 18 12 18C15.87 18 19 14.87 19 11" stroke={'#7A6B5D'} strokeWidth="1.5" strokeLinecap="round" />
+                <line x1="12" y1="18" x2="12" y2="22" stroke={'#7A6B5D'} strokeWidth="1.5" strokeLinecap="round" />
               </svg>
             </button>
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage(input, pendingImage?.dataUrl)}
-              placeholder={isRecording ? 'Listening\u2026' : 'Ask Cadence anything...'}
+              placeholder={isRecording ? 'Listening…' : 'Ask Cadence anything...'}
               disabled={isStreaming}
               style={{
                 flex: 1, padding: '10px 14px', borderRadius: '12px',
