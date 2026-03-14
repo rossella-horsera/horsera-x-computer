@@ -19,6 +19,7 @@ import {
 } from '../../lib/poseAnalysis';
 import type { PoseFrame, MovementInsight, RidingQualityScore } from '../../lib/poseAnalysis';
 import type { BiometricsSnapshot } from '../../data/mock';
+import { getHorseName } from '../../lib/userProfile';
 import type { VideoAnalysisResult, AnalysisStatus, TimestampedFrame } from '../../hooks/useVideoAnalysis';
 
 type AnalysisTab = 'movement' | 'body' | 'quality';
@@ -864,12 +865,12 @@ function IssueSummarySection({ biometrics }: { biometrics: BiometricsSnapshot })
 // Extended content for each Scale row — description + training suggestions
 const SCALE_DETAIL: Record<string, { description: string; suggestions: string[] }> = {
   Rhythm: {
-    description: "Rhythm is the first and most fundamental Scale. It means the regularity and tempo of the footfalls — each gait has a distinct beat (4-beat walk, 2-beat trot, 3-beat canter) that should remain constant. When your lower leg drifts, it disrupts Allegra's rhythm with every stride.",
+    description: `Rhythm is the first and most fundamental Scale. It means the regularity and tempo of the footfalls — each gait has a distinct beat (4-beat walk, 2-beat trot, 3-beat canter) that should remain constant. When your lower leg drifts, it disrupts ${getHorseName("your horse")}'s rhythm with every stride.`,
     suggestions: ['Trot counting exercise: count aloud "1-2, 1-2" for 10 strides without stopping', 'Transitions within trot (medium to working to collected) on a 20m circle', 'No-stirrup trot to develop a quiet, absorbing lower leg'],
   },
   Relaxation: {
     description: "Relaxation (Losgelassenheit) means mental and physical freedom from tension — in both horse and rider. A tense rider creates a tense horse. When your pelvis and core are supple, your horse swings freely through the back and breathes naturally.",
-    suggestions: ['Stretching circles: allow Allegra to stretch forward and down on a loose rein at rising trot', 'Singing or humming while riding to prevent breath-holding', 'Transitions halt–walk–halt on a loose rein to encourage self-carriage'],
+    suggestions: [`Stretching circles: allow ${getHorseName('your horse')} to stretch forward and down on a loose rein at rising trot`, 'Singing or humming while riding to prevent breath-holding', 'Transitions halt–walk–halt on a loose rein to encourage self-carriage'],
   },
   Contact: {
     description: "Contact is the soft, elastic connection from your hand to the horse's mouth through the rein. It is not pulling — it's a steady, following conversation. Unsteady hands create an inconsistent signal; the horse cannot trust a contact that moves unpredictably.",
@@ -881,7 +882,7 @@ const SCALE_DETAIL: Record<string, { description: string; suggestions: string[] 
   },
   Straightness: {
     description: "Straightness means the horse's hind feet follow in the track of the front feet on straight lines and arcs. Most horses (and riders) are naturally asymmetric. Uneven reins and uneven weight in the saddle are the most common causes of crookedness.",
-    suggestions: ['Ride down the centre line and halt: film from the front to check straightness', 'Leg yield from the quarter line to the track — tests and corrects asymmetry', 'Shoulder-fore on the rein where Allegra tends to fall out'],
+    suggestions: ['Ride down the centre line and halt: film from the front to check straightness', 'Leg yield from the quarter line to the track — tests and corrects asymmetry', `Shoulder-fore on the rein where ${getHorseName('your horse')} tends to fall out`],
   },
   Balance: {
     description: "Balance in the Scales refers to the horse carrying more weight on the hindquarters — what is called 'collection.' A rider who leans forward shifts the horse's balance onto the forehand, making collection impossible regardless of how the horse is trained.",

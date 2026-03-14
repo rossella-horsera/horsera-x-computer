@@ -142,6 +142,8 @@ export interface WeeklyPattern {
   isToday: boolean;
 }
 
+import { getHorseName } from '../lib/userProfile';
+
 // ─────────────────────────────────────────────────────────
 // RIDER
 // ─────────────────────────────────────────────────────────
@@ -150,7 +152,7 @@ export const mockRider: Rider = {
   id: 'rider-001',
   name: 'Rossella Vitali',
   firstName: 'Rossella',
-  horse: 'Allegra',
+  horse: getHorseName('Allegra'),
   trainer: 'Sarah Mitchell',
   track: 'usdf',
   currentGoalId: 'goal-001',
@@ -244,7 +246,7 @@ const usdtMilestones: Milestone[] = [
     ridingQuality: 'Rhythm',
     performanceTasks: ['Maintain rhythm and bend on 20m circle at trot, both reins'],
     exercises: exercises['lower-leg-stability'],
-    description: 'The 20m circle is the core Training Level movement. It tests rhythm, bend, and consistent contact. Lower leg stability keeps you anchored through the arc; steady reins keep Allegra soft and forward.',
+    description: `The 20m circle is the core Training Level movement. It tests rhythm, bend, and consistent contact. Lower leg stability keeps you anchored through the arc; steady reins keep ${getHorseName('your horse')} soft and forward.`,
     cadenceNote: '3 of 5 rides showing consistent circle geometry. The right rein is your weaker side — your lower leg tends to drift forward, breaking the bend. Try weighting the right stirrup through the arc.',
   },
   {
@@ -258,8 +260,8 @@ const usdtMilestones: Milestone[] = [
     ridingQuality: 'Contact & Relaxation',
     performanceTasks: ['Allow horse to stretch forward-down while maintaining direction and rhythm'],
     exercises: exercises['rein-steadiness'],
-    description: 'Free walk is one of the highest-weighted movements in Training Level tests. It requires you to gradually yield the rein while Allegra stretches forward and down — a true test of rein elasticity and trust.',
-    cadenceNote: 'Almost mastered — 4 of 5. The tunnel rein exercise has clearly worked. One more ride where the yield is gradual and Allegra tracks up, and this is done.',
+    description: `Free walk is one of the highest-weighted movements in Training Level tests. It requires you to gradually yield the rein while ${getHorseName('your horse')} stretches forward and down — a true test of rein elasticity and trust.`,
+    cadenceNote: `Almost mastered — 4 of 5. The tunnel rein exercise has clearly worked. One more ride where the yield is gradual and ${getHorseName('your horse')} tracks up, and this is done.`,
   },
   {
     id: 'ms-003',
@@ -333,7 +335,7 @@ const trailMilestones: Milestone[] = [
     ridingQuality: 'Relaxation & Balance',
     performanceTasks: ['Walk on loose rein over new ground', 'Maintain rhythm on uneven footing'],
     exercises: [],
-    description: 'The foundation of trail confidence. A relaxed walk on varied terrain requires you to absorb ground movement through a soft leg and quiet seat — letting Allegra focus on where she\'s going.',
+    description: `The foundation of trail confidence. A relaxed walk on varied terrain requires you to absorb ground movement through a soft leg and quiet seat — letting ${getHorseName('your horse')} focus on where they're going.`,
     cadenceNote: 'Almost there — 4 of 5 rides showing relaxed, consistent walk. One more strong session and this becomes your first trail milestone mastered. Your lower leg stability work from the arena is clearly transferring.',
   },
   {
@@ -346,7 +348,7 @@ const trailMilestones: Milestone[] = [
     ridingQuality: 'Relaxation & Contact',
     performanceTasks: ['Maintain rhythm when horse spooks', 'Ride past new objects without tension'],
     exercises: [],
-    description: 'Your body language communicates directly to Allegra. When you tighten, she tightens. This milestone builds the body awareness to stay physically soft when the environment is novel.',
+    description: `Your body language communicates directly to ${getHorseName('your horse')}. When you tighten, they tighten. This milestone builds the body awareness to stay physically soft when the environment is novel.`,
     cadenceNote: 'A longer journey — 2 of 5. The key question: when do you first feel yourself brace? The spooky rides are actually your most useful data. Rein steadiness from your dressage work is your biggest asset here.',
   },
   {
@@ -359,7 +361,7 @@ const trailMilestones: Milestone[] = [
     ridingQuality: 'Balance & Relaxation',
     performanceTasks: ['Complete solo trail loop', 'Handle unexpected situations independently'],
     exercises: [],
-    description: 'Riding independently develops your own decision-making and deepens the trust between you and Allegra. This milestone unlocks once your environment-calm foundation is solid.',
+    description: `Riding independently develops your own decision-making and deepens the trust between you and ${getHorseName('your horse')}. This milestone unlocks once your environment-calm foundation is solid.`,
   },
   {
     id: 'ms-t004',
@@ -371,7 +373,7 @@ const trailMilestones: Milestone[] = [
     ridingQuality: 'Balance & Adjustability',
     performanceTasks: ['Ride uphill without tipping forward', 'Navigate downhill without bracing'],
     exercises: [],
-    description: 'Hills and uneven terrain require constant weight redistribution. This milestone builds the physical adaptability to ride any terrain without disrupting Allegra\'s balance.',
+    description: `Hills and uneven terrain require constant weight redistribution. This milestone builds the physical adaptability to ride any terrain without disrupting ${getHorseName('your horse')}'s balance.`,
   },
 ];
 
@@ -412,7 +414,7 @@ export const mockRides: Ride[] = [
   {
     id: 'ride-001',
     date: '2026-03-09',
-    horse: 'Allegra',
+    horse: getHorseName('Allegra'),
     type: 'training',
     duration: 45,
     focusMilestone: 'Lower Leg Stability',
@@ -434,7 +436,7 @@ export const mockRides: Ride[] = [
   {
     id: 'ride-002',
     date: '2026-03-07',
-    horse: 'Allegra',
+    horse: getHorseName('Allegra'),
     type: 'lesson',
     duration: 60,
     focusMilestone: 'Rein Steadiness',
@@ -456,11 +458,11 @@ export const mockRides: Ride[] = [
   {
     id: 'ride-003',
     date: '2026-03-05',
-    horse: 'Allegra',
+    horse: getHorseName('Allegra'),
     type: 'training',
     duration: 40,
     focusMilestone: 'Lower Leg Stability',
-    reflection: 'Shorter ride today — Allegra was a bit spooky. Still managed 20 minutes of focused work. Leg felt OK.',
+    reflection: `Shorter ride today — ${getHorseName('my horse')} was a bit spooky. Still managed 20 minutes of focused work. Leg felt OK.`,
     signal: 'consistent',
     videoUploaded: false,
     milestoneId: 'ms-001',
@@ -476,7 +478,7 @@ export const mockRides: Ride[] = [
   {
     id: 'ride-004',
     date: '2026-03-04',
-    horse: 'Allegra',
+    horse: getHorseName('Allegra'),
     type: 'training',
     duration: 50,
     focusMilestone: 'Rein Steadiness',
@@ -488,7 +490,7 @@ export const mockRides: Ride[] = [
   {
     id: 'ride-005',
     date: '2026-03-03',
-    horse: 'Allegra',
+    horse: getHorseName('Allegra'),
     type: 'training',
     duration: 45,
     focusMilestone: 'Core Stability',

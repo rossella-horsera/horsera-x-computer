@@ -7,7 +7,7 @@ import { computeRidingQualities, generateInsights } from '../lib/poseAnalysis';
 import type { MovementInsight } from '../lib/poseAnalysis';
 import { saveRide, getRides } from '../lib/storage';
 import type { StoredRide } from '../lib/storage';
-import { getUserProfile, isProfileComplete } from '../lib/userProfile';
+import { getUserProfile, isProfileComplete, getHorseName } from '../lib/userProfile';
 import VideoSilhouetteOverlay from '../components/VideoSilhouetteOverlay';
 import ProfileSetupModal from '../components/ProfileSetupModal';
 
@@ -623,7 +623,7 @@ function RideDetailView({
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: FONTS.heading, fontSize: '15px', color: COLORS.charcoal }}>
-            {rideTypeLabel[ride.type] ?? ride.type} · {ride.horse}
+            {rideTypeLabel[ride.type] ?? ride.type} · {ride.horse || getHorseName('Horse')}
           </div>
           <div style={{ fontFamily: FONTS.mono, fontSize: '10px', color: COLORS.muted }}>
             {dateStr}
@@ -662,7 +662,7 @@ function RideDetailView({
               <path d="M15 12l10 6-10 6V12z" fill="rgba(201,169,110,0.7)" />
             </svg>
             <span style={{ fontFamily: FONTS.body, fontSize: '12px', color: 'rgba(250,247,243,0.5)' }}>
-              {ride.horse} · {discipline}
+              {ride.horse || getHorseName('Horse')} · {discipline}
             </span>
             <span style={{ fontFamily: FONTS.mono, fontSize: '10px', color: 'rgba(201,169,110,0.6)' }}>
               {dateStr} · {ride.duration}min
@@ -732,7 +732,7 @@ function RideDetailView({
                 { label: 'Date', value: dateStr },
                 { label: 'Duration', value: `${ride.duration} min` },
                 { label: 'Discipline', value: discipline },
-                { label: 'Horse', value: ride.horse },
+                { label: 'Horse', value: ride.horse || getHorseName('Horse') },
               ].map(item => (
                 <div key={item.label}>
                   <div style={{ fontFamily: FONTS.mono, fontSize: '9px', color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3 }}>
@@ -858,7 +858,7 @@ interface AddRideModalProps {
 
 function AddRideModal({ open, onClose, onAddRide }: AddRideModalProps) {
   const [rideType, setRideType] = useState<RideType>('training');
-  const [horse, setHorse] = useState('');
+  const [horse, setHorse] = useState(() => getHorseName(''));
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [duration, setDuration] = useState(45);
   const [notes, setNotes] = useState('');
@@ -1068,7 +1068,7 @@ function UploadSheet({ open, onClose, onVideoSelected, ride, storedRide }: Uploa
             <div>
               <div style={{ fontFamily: FONTS.heading, fontSize: 17, color: COLORS.charcoal }}>Analyse Ride</div>
               <div style={{ fontFamily: FONTS.mono, fontSize: 10, color: COLORS.muted, marginTop: 2 }}>
-                {ride.horse} · {rideTypeLabel[ride.type] ?? ride.type} · {dateStr}
+                {ride.horse || getHorseName('Horse')} · {rideTypeLabel[ride.type] ?? ride.type} · {dateStr}
               </div>
             </div>
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: COLORS.muted, fontSize: '20px' }}>×</button>
@@ -1146,7 +1146,7 @@ export default function RidesPage() {
   const [showDetail, setShowDetail] = useState(false);
   const [showAddRide, setShowAddRide] = useState(false);
   const [userRides, setUserRides] = useState<Ride[]>([]);
-  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(!isProfileComplete());
   const processMsgRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Load stored rides
@@ -1450,7 +1450,7 @@ export default function RidesPage() {
                 </div>
 
                 <div style={{ fontFamily: FONTS.mono, fontSize: '10px', color: COLORS.muted, marginBottom: 6 }}>
-                  {ride.horse} · {ride.duration}min
+                  {ride.horse || getHorseName('Horse')} · {ride.duration}min
                 </div>
 
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>

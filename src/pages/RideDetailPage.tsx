@@ -4,6 +4,7 @@ import VideoAnalysis from '../components/ui/VideoAnalysis';
 import { useVideoAnalysis } from '../hooks/useVideoAnalysis';
 import { generateInsights } from '../lib/poseAnalysis';
 import { mockRides, mockGoal } from '../data/mock';
+import { getHorseName } from '../lib/userProfile';
 
 const signalConfig = {
   improving:    { color: '#7D9B76', symbol: '\u2191', label: 'Improving' },
@@ -72,7 +73,7 @@ export default function RideDetailPage() {
           </div>
         </div>
         <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: '#B5A898', marginBottom: '20px' }}>
-          {ride.horse} \u00b7 {ride.duration} min \u00b7 {ride.type}
+          {ride.horse || getHorseName('Horse')} \u00b7 {ride.duration} min \u00b7 {ride.type}
         </div>
       </div>
 

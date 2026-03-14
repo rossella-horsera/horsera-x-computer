@@ -37,3 +37,9 @@ export function isProfileComplete(): boolean {
   const p = getUserProfile();
   return p.isOnboarded && p.firstName.length > 0;
 }
+
+/** Returns the horse name from the user's profile, with a fallback. */
+export function getHorseName(fallback = 'your horse'): string {
+  const p = getUserProfile();
+  return p.horseName?.trim() || fallback;
+}

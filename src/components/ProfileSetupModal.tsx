@@ -25,13 +25,19 @@ const DISCIPLINES = [
 ];
 
 interface ProfileSetupModalProps {
-  onComplete: () => void;
+  onComplete?: () => void;
+  open?: boolean;
+  onClose?: () => void;
 }
 
-export default function ProfileSetupModal({ onComplete }: ProfileSetupModalProps) {
+export default function ProfileSetupModal({ onComplete, open, onClose }: ProfileSetupModalProps) {
   const [firstName, setFirstName] = useState('');
   const [horseName, setHorseName] = useState('');
   const [discipline, setDiscipline] = useState<'usdf' | 'pony-club' | 'hunter-jumper' | 'a-bit-of-everything'>('usdf');
+
+  // Support both prop patterns: { onComplete } and { open, onClose }
+  const isVisible = open !== undefined ? open : true;
+  const handleDismiss = onClose || onComplete || (() => {});
 
   const handleSave = () => {
     if (!firstName.trim()) return;
@@ -41,8 +47,10 @@ export default function ProfileSetupModal({ onComplete }: ProfileSetupModalProps
       discipline,
       isOnboarded: true,
     });
-    onComplete();
+    handleDismiss();
   };
+
+  if (!isVisible) return null;
 
   return (
     <div style={{
