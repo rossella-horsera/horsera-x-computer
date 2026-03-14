@@ -38,6 +38,9 @@ const signalConfig = {
   'needs-work': { color: COLORS.attention, symbol: '↓', label: 'Needs work' },
 };
 
+const getSignal = (signal: string | undefined) =>
+  signalConfig[signal as keyof typeof signalConfig] ?? signalConfig.consistent;
+
 const rideTypeLabel: Record<string, string> = {
   training:    '🐎 Training',
   lesson:      '👩‍🏫 Lesson',
@@ -745,15 +748,15 @@ function RideDetailView({
             {/* Signal chip */}
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: `${signalConfig[ride.signal].color}14`,
-              border: `1px solid ${signalConfig[ride.signal].color}30`,
+              background: `${getSignal(ride.signal).color}14`,
+              border: `1px solid ${getSignal(ride.signal).color}30`,
               padding: '5px 10px', borderRadius: 20,
             }}>
-              <span style={{ fontFamily: FONTS.mono, fontSize: 14, color: signalConfig[ride.signal].color }}>
-                {signalConfig[ride.signal].symbol}
+              <span style={{ fontFamily: FONTS.mono, fontSize: 14, color: getSignal(ride.signal).color }}>
+                {getSignal(ride.signal).symbol}
               </span>
-              <span style={{ fontFamily: FONTS.body, fontSize: '11px', fontWeight: 500, color: signalConfig[ride.signal].color }}>
-                {signalConfig[ride.signal].label}
+              <span style={{ fontFamily: FONTS.body, fontSize: '11px', fontWeight: 500, color: getSignal(ride.signal).color }}>
+                {getSignal(ride.signal).label}
               </span>
             </div>
           </div>
@@ -1156,7 +1159,7 @@ export default function RidesPage() {
         horse: s.horse,
         type: s.type as Ride['type'],
         duration: s.duration,
-        signal: s.signal,
+        signal: (s as any).signal || 'consistent',
         tags: [],
         biometrics: s.biometrics,
       }));
@@ -1401,7 +1404,7 @@ export default function RidesPage() {
                 padding: '14px 16px', cursor: 'pointer',
                 boxShadow: '0 2px 10px rgba(26,20,14,0.05)',
                 display: 'flex', gap: '12px', alignItems: 'flex-start',
-                borderLeft: `3px solid ${signalConfig[ride.signal].color}`,
+                borderLeft: `3px solid ${getSignal(ride.signal).color}`,
                 transition: 'transform 0.15s ease, box-shadow 0.15s ease',
               }}
               onMouseEnter={e => {
@@ -1426,12 +1429,12 @@ export default function RidesPage() {
               ) : (
                 <div style={{
                   width: 36, height: 36, borderRadius: '50%',
-                  background: `${signalConfig[ride.signal].color}15`,
+                  background: `${getSignal(ride.signal).color}15`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}>
-                  <span style={{ fontFamily: FONTS.mono, fontSize: '14px', color: signalConfig[ride.signal].color }}>
-                    {signalConfig[ride.signal].symbol}
+                  <span style={{ fontFamily: FONTS.mono, fontSize: '14px', color: getSignal(ride.signal).color }}>
+                    {getSignal(ride.signal).symbol}
                   </span>
                 </div>
               )}

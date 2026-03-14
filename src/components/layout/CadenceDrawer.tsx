@@ -425,6 +425,7 @@ export default function CadenceDrawer({ open, onClose, onStreamingChange, onSpee
                 <path d="M5 11C5 14.87 8.13 18 12 18C15.87 18 19 14.87 19 11" stroke={'#7A6B5D'} strokeWidth="1.5" strokeLinecap="round" />
                 <line x1="12" y1="18" x2="12" y2="22" stroke={'#7A6B5D'} strokeWidth="1.5" strokeLinecap="round" />
               </svg>
+              )}
             </button>
             <input
               value={input}
