@@ -225,7 +225,26 @@ Horsera aims to become the *longitudinal system of record* for rider–horse dev
 - Lauren to assess emotional correctness of each screen
 - Ross to propose first weekly plan
 
+### 2026-03-14 — Onboarding Modal Fix + Horse Name Propagation
+**What happened:**
+- Fixed broken onboarding modal ("Let's Begin" button not working)
+- Root cause: ProfileSetupModal accepted `{onComplete}` but RidesPage passed `{open, onClose}` — props never matched
+- Added `getHorseName(fallback)` helper to userProfile.ts
+- Replaced all 18 hardcoded "Allegra" references across 6 files with dynamic `getHorseName()` calls
+- Files modified: ProfileSetupModal.tsx, RidesPage.tsx, RideDetailPage.tsx, VideoAnalysis.tsx, mock.ts, userProfile.ts
+- Committed (187c1c4), pushed to GitHub, deployed to sandbox + Vercel auto-deploy
+- Trello card #74 created, moved to Ready for Review
+
+**Key decisions:**
+- ProfileSetupModal now supports both prop patterns (`{onComplete}` used by HomePage, `{open, onClose}` used by RidesPage)
+- Horse name falls back to 'Allegra' for mock data when user hasn't set a profile
+- `getHorseName()` reads from safeStorage synchronously — works in both module-level constants and React components
+
+**User instruction recorded:**
+- Always read context markdowns (product.md, brand.md, tech.md, progress.md, DECISIONS.md, MEMORY.md) before implementing any changes
+- Ensure new changes don't conflict with previous decisions
+
 ---
 
-*Updated by: Setup session*
+*Updated by: 2026-03-14 session*
 *Next compression due: 2026-03-18*
