@@ -803,7 +803,7 @@ function AddRideFAB({ onClick }: { onClick: () => void }) {
       aria-label="Add a new ride"
       style={{
         position: 'fixed',
-        bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
+        bottom: 'calc(160px + env(safe-area-inset-bottom, 0px))',
         right: '20px',
         height: 48,
         paddingLeft: 20,
