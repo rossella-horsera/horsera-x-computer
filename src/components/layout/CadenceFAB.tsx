@@ -1,8 +1,12 @@
 interface CadenceFABProps {
   onClick: () => void;
+  isActive?: boolean;   // true when Cadence is streaming a response
+  isListening?: boolean; // true when voice input is active
 }
 
-export default function CadenceFAB({ onClick }: CadenceFABProps) {
+export default function CadenceFAB({ onClick, isActive = false, isListening = false }: CadenceFABProps) {
+  // isAnimated = wave bars animate only when active (listening or speaking)
+  const isAnimated = isActive || isListening;
   return (
     <div style={{
       position: 'fixed',
@@ -78,21 +82,13 @@ export default function CadenceFAB({ onClick }: CadenceFABProps) {
         }} />
 
         {/* Organic waveform / flame icon — alive, intelligent, warm */}
-        <CadenceIcon size={28} />
+        <CadenceIcon size={28} animated={isAnimated} />
       </button>
     </div>
   );
 }
 
-/**
- * CadenceIcon — flowing organic waveform/flame-inspired icon.
- * 5 rounded bars of varying heights, each animated independently
- * for an alive, breathing feel. Subtle overall scale+opacity breathe.
- *
- * Works at 28px (nav/FAB) and 20px (drawer header circle).
- * The <style> tag injects scoped keyframes on first render.
- */
-export function CadenceIcon({ size = 28 }: { size?: number }) {
+export function CadenceIcon({ size = 28, animated = true }: { size?: number; animated?: boolean }) {
   return (
     <div
       style={{
@@ -102,11 +98,10 @@ export function CadenceIcon({ size = 28 }: { size?: number }) {
         alignItems: 'flex-end',
         justifyContent: 'center',
         gap: `${size * 0.09}px`,
-        animation: 'cadence-icon-breathe 3s ease-in-out infinite',
+        animation: animated ? 'cadence-icon-breathe 3s ease-in-out infinite' : undefined,
       }}
       aria-hidden="true"
     >
-      {/* Bar 1 — leftmost, shorter, softer */}
       <div style={{
         width: `${size * 0.115}px`,
         height: `${size * 0.46}px`,
@@ -114,9 +109,8 @@ export function CadenceIcon({ size = 28 }: { size?: number }) {
         background: 'linear-gradient(180deg, #DFBF74 0%, #A87D4A 100%)',
         opacity: 0.65,
         transformOrigin: 'bottom center',
-        animation: 'cadence-wv-0 2.9s ease-in-out infinite',
+        animation: animated ? 'cadence-wv-0 2.9s ease-in-out infinite' : 'none',
       }} />
-      {/* Bar 2 */}
       <div style={{
         width: `${size * 0.115}px`,
         height: `${size * 0.64}px`,
@@ -124,9 +118,8 @@ export function CadenceIcon({ size = 28 }: { size?: number }) {
         background: 'linear-gradient(180deg, #EACF80 0%, #C9A96E 100%)',
         opacity: 0.85,
         transformOrigin: 'bottom center',
-        animation: 'cadence-wv-1 2.1s ease-in-out infinite',
+        animation: animated ? 'cadence-wv-1 2.1s ease-in-out infinite' : 'none',
       }} />
-      {/* Bar 3 — center, tallest */}
       <div style={{
         width: `${size * 0.13}px`,
         height: `${size * 0.82}px`,
@@ -134,10 +127,9 @@ export function CadenceIcon({ size = 28 }: { size?: number }) {
         background: 'linear-gradient(180deg, #F0D888 0%, #C9A96E 60%, #A07040 100%)',
         opacity: 1,
         transformOrigin: 'bottom center',
-        animation: 'cadence-wv-2 1.8s ease-in-out infinite',
+        animation: animated ? 'cadence-wv-2 1.8s ease-in-out infinite' : 'none',
         boxShadow: `0 0 ${size * 0.25}px rgba(201,169,110,0.4)`,
       }} />
-      {/* Bar 4 */}
       <div style={{
         width: `${size * 0.115}px`,
         height: `${size * 0.68}px`,
@@ -145,9 +137,8 @@ export function CadenceIcon({ size = 28 }: { size?: number }) {
         background: 'linear-gradient(180deg, #EACF80 0%, #C9A96E 100%)',
         opacity: 0.85,
         transformOrigin: 'bottom center',
-        animation: 'cadence-wv-3 2.5s ease-in-out infinite',
+        animation: animated ? 'cadence-wv-3 2.5s ease-in-out infinite' : 'none',
       }} />
-      {/* Bar 5 — rightmost, shortest */}
       <div style={{
         width: `${size * 0.115}px`,
         height: `${size * 0.42}px`,
@@ -155,7 +146,7 @@ export function CadenceIcon({ size = 28 }: { size?: number }) {
         background: 'linear-gradient(180deg, #DFBF74 0%, #A87D4A 100%)',
         opacity: 0.6,
         transformOrigin: 'bottom center',
-        animation: 'cadence-wv-4 3.1s ease-in-out infinite',
+        animation: animated ? 'cadence-wv-4 3.1s ease-in-out infinite' : 'none',
       }} />
 
       <style>{`
