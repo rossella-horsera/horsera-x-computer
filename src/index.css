@@ -116,6 +116,12 @@
   }
 }
 
+/* #60 — Branded Champagne pulse keyframes (must be outside @layer) */
+@keyframes champagnePulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
 @layer utilities {
   .font-display {
     font-family: 'Playfair Display', Georgia, serif;
@@ -135,14 +141,10 @@
   .font-mono {
     font-family: 'DM Mono', monospace;
   }
-  /* #60 — Branded Champagne pulse for loading states */
-  @keyframes champagnePulse {
-    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-    40% { opacity: 1; transform: scale(1); }
-  }
   .champagne-pulse {
     display: inline-block;
-    width: 8px; height: 8px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: #C9A96E;
     animation: champagnePulse 1.4s ease-in-out infinite;
